@@ -17,49 +17,33 @@ import {
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0B1020] text-white overflow-x-hidden">
-      {/* ===== ANIMATED BACKGROUND ===== */}
+      {/* Animated background */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-gradient-to-b from-blue-500/20 via-purple-500/10 to-transparent rounded-full blur-3xl" />
-        <div className="absolute top-[40%] -left-40 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-[60%] -right-40 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-gradient-to-b from-blue-500/15 via-purple-500/5 to-transparent rounded-full blur-3xl" />
       </div>
 
-      {/* ===== NAVBAR ===== */}
+      {/* Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0B1020]/70 border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-sm group-hover:scale-105 transition">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-sm">
               N
             </div>
             <span className="text-lg font-bold tracking-tight">Nexus</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-            <Link href="#features" className="hover:text-white transition">
-              Features
-            </Link>
-            <Link href="#how" className="hover:text-white transition">
-              How it works
-            </Link>
-            <Link href="#pricing" className="hover:text-white transition">
-              Pricing
-            </Link>
-            <Link href="#faq" className="hover:text-white transition">
-              FAQ
-            </Link>
+            <Link href="#features" className="hover:text-white transition">Features</Link>
+            <Link href="#how" className="hover:text-white transition">How it works</Link>
+            <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
+            <Link href="#faq" className="hover:text-white transition">FAQ</Link>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="hidden sm:block px-4 py-2 text-sm text-slate-300 hover:text-white transition"
-            >
+            <Link href="/login" className="hidden sm:block px-4 py-2 text-sm text-slate-300 hover:text-white transition">
               Sign in
             </Link>
-            <Link
-              href="/register"
-              className="rounded-lg px-4 py-2 text-sm bg-white text-slate-900 hover:bg-slate-100 transition font-semibold flex items-center gap-1.5 group"
-            >
+            <Link href="/register" className="rounded-lg px-4 py-2 text-sm bg-white text-slate-900 hover:bg-slate-100 transition font-semibold flex items-center gap-1.5 group">
               Get started
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </Link>
@@ -67,11 +51,11 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ===== HERO ===== */}
+      {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-6 pt-20 md:pt-28 pb-16 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 py-1.5 text-xs text-slate-300 mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          Now in beta — Free for early teams
+          Now in beta — Free during beta
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.05] mb-6">
@@ -90,26 +74,18 @@ export default function HomePage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-16">
-          <Link
-            href="/register"
-            className="group rounded-xl px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/25"
-          >
+          <Link href="/register" className="group rounded-xl px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/25">
             Start building free
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
           </Link>
-          <Link
-            href="#how"
-            className="rounded-xl px-6 py-3.5 border border-white/10 text-slate-200 hover:bg-white/5 transition font-semibold"
-          >
+          <Link href="#how" className="rounded-xl px-6 py-3.5 border border-white/10 text-slate-200 hover:bg-white/5 transition font-semibold">
             See how it works
           </Link>
         </div>
 
-        {/* Hero screenshot */}
         <div className="relative max-w-5xl mx-auto">
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-500/30 to-transparent blur-2xl -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-transparent blur-2xl -z-10" />
           <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-2xl shadow-blue-500/10">
-            {/* Browser chrome */}
             <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-white/5">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
@@ -118,37 +94,33 @@ export default function HomePage() {
                 nexus.app/dashboard
               </div>
             </div>
-            {/* Screenshot */}
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020]">
-              <Image
-                src="/dashboard.png"
-                alt="Nexus dashboard"
-                fill
-                className="object-cover"
-                priority
-              />
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <div className="text-center p-8">
+                <p className="text-slate-500 text-sm">
+                  Add your dashboard screenshot to <code className="text-blue-400">public/dashboard.png</code>
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===== TRUST BAR ===== */}
+      {/* Tech stack bar (replacing fake logos) */}
       <section className="max-w-6xl mx-auto px-6 py-16 border-y border-white/5">
         <p className="text-center text-xs uppercase tracking-widest text-slate-500 mb-8">
-          Trusted by fast-moving teams
+          Built with
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 items-center opacity-40">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 items-center opacity-50">
           {[
-            "Acme",
-            "Vertex",
-            "Nimbus",
-            "Horizon",
-            "Parallel",
-            "Zenith",
+            "Next.js 16",
+            "TypeScript",
+            "Prisma",
+            "PostgreSQL",
+            "Supabase",
           ].map((name) => (
             <div
               key={name}
-              className="text-center text-lg font-bold tracking-tight text-slate-400"
+              className="text-center text-sm font-semibold tracking-tight text-slate-300"
             >
               {name}
             </div>
@@ -156,7 +128,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURES GRID ===== */}
+      {/* Features */}
       <section id="features" className="max-w-7xl mx-auto px-6 py-24">
         <div className="max-w-2xl mx-auto text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
@@ -210,23 +182,18 @@ export default function HomePage() {
               key={f.title}
               className="group rounded-2xl border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-6 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
             >
-              <div
-                className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
-              >
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <f.icon className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-base font-semibold mb-1.5">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                {f.desc}
-              </p>
+              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ===== PRODUCT TOUR ===== */}
+      {/* Product tour */}
       <section id="how" className="max-w-7xl mx-auto px-6 py-24 space-y-24">
-        {/* Feature 1: Chat */}
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 mb-6">
@@ -254,27 +221,20 @@ export default function HomePage() {
             </ul>
           </div>
           <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-xl">
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020]">
-              <Image
-                src="/chat.png"
-                alt="Nexus chat"
-                fill
-                className="object-cover"
-              />
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <p className="text-slate-500 text-sm p-4 text-center">
+                Add <code className="text-blue-400">public/chat.png</code>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Feature 2: Tasks */}
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1 rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-xl">
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020]">
-              <Image
-                src="/tasks.png"
-                alt="Nexus tasks"
-                fill
-                className="object-cover"
-              />
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <p className="text-slate-500 text-sm p-4 text-center">
+                Add <code className="text-green-400">public/tasks.png</code>
+              </p>
             </div>
           </div>
           <div className="order-1 lg:order-2">
@@ -305,18 +265,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== STATS ===== */}
+      {/* Real stats */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-transparent p-8 md:p-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: "50+", label: "Features shipped" },
-              { value: "<100ms", label: "Message latency" },
-              { value: "99.9%", label: "Uptime target" },
-              { value: "0", label: "Credit card required" },
+              { value: "10+", label: "Core features" },
+              { value: "WebRTC", label: "Video calls" },
+              { value: "PostgreSQL", label: "Database" },
+              { value: "$0", label: "During beta" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent mb-1">
+                <div className="text-2xl md:text-3xl font-bold bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent mb-1">
                   {s.value}
                 </div>
                 <div className="text-xs text-slate-500 uppercase tracking-wider">
@@ -328,14 +288,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== PRICING ===== */}
+      {/* Pricing */}
       <section id="pricing" className="max-w-6xl mx-auto px-6 py-24">
         <div className="max-w-2xl mx-auto text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             Simple pricing
           </h2>
           <p className="text-slate-400 text-lg">
-            Free while we&apos;re in beta. Paid plans coming soon.
+            Free during beta. Paid plans coming soon.
           </p>
         </div>
 
@@ -365,7 +325,6 @@ export default function HomePage() {
               features: [
                 "Everything in Free",
                 "Unlimited team members",
-                "File storage (10 GB)",
                 "Advanced analytics",
                 "Priority support",
                 "Custom branding",
@@ -384,7 +343,6 @@ export default function HomePage() {
                 "Audit logs",
                 "Dedicated support",
                 "Custom SLA",
-                "On-prem option",
               ],
               cta: "Contact us",
               highlight: false,
@@ -409,23 +367,14 @@ export default function HomePage() {
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-4xl font-bold">{plan.price}</span>
                   {plan.period && (
-                    <span className="text-sm text-slate-500">
-                      {plan.period}
-                    </span>
+                    <span className="text-sm text-slate-500">{plan.period}</span>
                   )}
                 </div>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {plan.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2.5 text-sm text-slate-300"
-                  >
-                    <Check
-                      className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                        plan.highlight ? "text-blue-400" : "text-slate-500"
-                      }`}
-                    />
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
+                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.highlight ? "text-blue-400" : "text-slate-500"}`} />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -445,7 +394,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FAQ ===== */}
+      {/* FAQ */}
       <section id="faq" className="max-w-3xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
@@ -458,7 +407,7 @@ export default function HomePage() {
           {[
             {
               q: "Is Nexus really free?",
-              a: "Yes. While we're in beta, every feature is free. No credit card, no trial period. We'll introduce paid plans later, but early users keep access to the free tier permanently.",
+              a: "Yes. While we're in beta, every feature is free. No credit card, no trial period. We'll introduce paid plans later, but early users keep access to the free tier.",
             },
             {
               q: "What makes Nexus different from Slack or Notion?",
@@ -499,7 +448,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA ===== */}
+      {/* Final CTA */}
       <section className="max-w-5xl mx-auto px-6 py-24">
         <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent p-12 md:p-16 text-center overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.15),transparent_70%)]" />
@@ -521,7 +470,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
+      {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
@@ -530,9 +479,7 @@ export default function HomePage() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs">
                   N
                 </div>
-                <span className="text-base font-bold tracking-tight">
-                  Nexus
-                </span>
+                <span className="text-base font-bold tracking-tight">Nexus</span>
               </Link>
               <p className="text-sm text-slate-500 max-w-sm">
                 The all-in-one workspace for teams that move fast. Chat, calls,
@@ -544,21 +491,9 @@ export default function HomePage() {
                 Product
               </div>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>
-                  <Link href="#features" className="hover:text-white transition">
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#pricing" className="hover:text-white transition">
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#faq" className="hover:text-white transition">
-                    FAQ
-                  </Link>
-                </li>
+                <li><Link href="#features" className="hover:text-white transition">Features</Link></li>
+                <li><Link href="#pricing" className="hover:text-white transition">Pricing</Link></li>
+                <li><Link href="#faq" className="hover:text-white transition">FAQ</Link></li>
               </ul>
             </div>
             <div>
@@ -566,34 +501,17 @@ export default function HomePage() {
                 Account
               </div>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>
-                  <Link href="/login" className="hover:text-white transition">
-                    Sign in
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/register" className="hover:text-white transition">
-                    Create account
-                  </Link>
-                </li>
+                <li><Link href="/login" className="hover:text-white transition">Sign in</Link></li>
+                <li><Link href="/register" className="hover:text-white transition">Create account</Link></li>
               </ul>
             </div>
           </div>
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <p>
-              © {new Date().getFullYear()} Nexus. Built with Next.js, Prisma,
-              and Supabase.
-            </p>
+            <p>© {new Date().getFullYear()} Nexus. Built with Next.js, Prisma, and Supabase.</p>
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-1.5">
-                <Shield className="w-3 h-3" /> Secure
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3" /> Fast
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Globe className="w-3 h-3" /> Global
-              </span>
+              <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> Secure</span>
+              <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> Fast</span>
+              <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> Global</span>
             </div>
           </div>
         </div>
