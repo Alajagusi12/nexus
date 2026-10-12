@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   MessageSquare,
   Video,
@@ -18,32 +17,48 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0B1020] text-white overflow-x-hidden">
       {/* Animated background */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-gradient-to-b from-blue-500/15 via-purple-500/5 to-transparent rounded-full blur-3xl" />
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] md:w-[1200px] h-[500px] md:h-[800px] bg-gradient-to-b from-blue-500/15 via-purple-500/5 to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0B1020]/70 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-sm">
               N
             </div>
-            <span className="text-lg font-bold tracking-tight">Nexus</span>
+            <span className="text-base md:text-lg font-bold tracking-tight">
+              Nexus
+            </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-            <Link href="#features" className="hover:text-white transition">Features</Link>
-            <Link href="#how" className="hover:text-white transition">How it works</Link>
-            <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
-            <Link href="#faq" className="hover:text-white transition">FAQ</Link>
+            <Link href="#features" className="hover:text-white transition">
+              Features
+            </Link>
+            <Link href="#how" className="hover:text-white transition">
+              How it works
+            </Link>
+            <Link href="#pricing" className="hover:text-white transition">
+              Pricing
+            </Link>
+            <Link href="#faq" className="hover:text-white transition">
+              FAQ
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden sm:block px-4 py-2 text-sm text-slate-300 hover:text-white transition">
+            <Link
+              href="/login"
+              className="hidden sm:block px-3 md:px-4 py-2 text-xs md:text-sm text-slate-300 hover:text-white transition"
+            >
               Sign in
             </Link>
-            <Link href="/register" className="rounded-lg px-4 py-2 text-sm bg-white text-slate-900 hover:bg-slate-100 transition font-semibold flex items-center gap-1.5 group">
+            <Link
+              href="/register"
+              className="rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm bg-white text-slate-900 hover:bg-slate-100 transition font-semibold flex items-center gap-1.5 group"
+            >
               Get started
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </Link>
@@ -52,13 +67,13 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-6 pt-20 md:pt-28 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 py-1.5 text-xs text-slate-300 mb-8">
+      <section className="relative max-w-7xl mx-auto px-4 md:px-6 pt-12 md:pt-28 pb-12 md:pb-16 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur px-3 md:px-4 py-1.5 text-[10px] md:text-xs text-slate-300 mb-6 md:mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           Now in beta — Free during beta
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.05] mb-6">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.15] md:leading-[1.05] mb-5 md:mb-6">
           <span className="bg-gradient-to-b from-white via-white to-slate-400 bg-clip-text text-transparent">
             The workspace
           </span>
@@ -68,36 +83,43 @@ export default function HomePage() {
           </span>
         </h1>
 
-        <p className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-sm md:text-lg text-slate-400 max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed px-2">
           Chat, video calls, documents, and tasks. All in one place. Built for
           teams that ship fast and hate tool-switching.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-16">
-          <Link href="/register" className="group rounded-xl px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/25">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-12 md:mb-16 px-4">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto group rounded-xl px-5 md:px-6 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 text-sm md:text-base"
+          >
             Start building free
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
           </Link>
-          <Link href="#how" className="rounded-xl px-6 py-3.5 border border-white/10 text-slate-200 hover:bg-white/5 transition font-semibold">
+          <Link
+            href="#how"
+            className="w-full sm:w-auto rounded-xl px-5 md:px-6 py-3 md:py-3.5 border border-white/10 text-slate-200 hover:bg-white/5 transition font-semibold text-center text-sm md:text-base"
+          >
             See how it works
           </Link>
         </div>
 
         <div className="relative max-w-5xl mx-auto">
           <div className="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-transparent blur-2xl -z-10" />
-          <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-2xl shadow-blue-500/10">
-            <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-white/5">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-              <div className="ml-3 text-[10px] text-slate-500 font-mono">
+          <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-1.5 md:p-2 shadow-2xl shadow-blue-500/10">
+            <div className="flex items-center gap-1.5 px-2 md:px-3 py-2 md:py-2.5 border-b border-white/5">
+              <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-red-500/60" />
+              <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-yellow-500/60" />
+              <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-green-500/60" />
+              <div className="ml-2 md:ml-3 text-[9px] md:text-[10px] text-slate-500 font-mono">
                 nexus.app/dashboard
               </div>
             </div>
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
-              <div className="text-center p-8">
-                <p className="text-slate-500 text-sm">
-                  Add your dashboard screenshot to <code className="text-blue-400">public/dashboard.png</code>
+            <div className="relative aspect-[16/10] rounded-lg md:rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <div className="text-center p-4 md:p-8">
+                <p className="text-slate-500 text-xs md:text-sm">
+                  Add your dashboard screenshot to{" "}
+                  <code className="text-blue-400">public/dashboard.png</code>
                 </p>
               </div>
             </div>
@@ -105,41 +127,37 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Tech stack bar (replacing fake logos) */}
-      <section className="max-w-6xl mx-auto px-6 py-16 border-y border-white/5">
-        <p className="text-center text-xs uppercase tracking-widest text-slate-500 mb-8">
+      {/* Tech stack bar */}
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16 border-y border-white/5">
+        <p className="text-center text-[10px] md:text-xs uppercase tracking-widest text-slate-500 mb-6 md:mb-8">
           Built with
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 items-center opacity-50">
-          {[
-            "Next.js 16",
-            "TypeScript",
-            "Prisma",
-            "PostgreSQL",
-            "Supabase",
-          ].map((name) => (
-            <div
-              key={name}
-              className="text-center text-sm font-semibold tracking-tight text-slate-300"
-            >
-              {name}
-            </div>
-          ))}
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6 items-center opacity-50">
+          {["Next.js 16", "TypeScript", "Prisma", "PostgreSQL", "Supabase"].map(
+            (name) => (
+              <div
+                key={name}
+                className="text-center text-xs md:text-sm font-semibold tracking-tight text-slate-300"
+              >
+                {name}
+              </div>
+            )
+          )}
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+      <section id="features" className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="max-w-2xl mx-auto text-center mb-10 md:mb-16">
+          <h2 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
             Everything in one place
           </h2>
-          <p className="text-slate-400 text-lg">
+          <p className="text-sm md:text-lg text-slate-400">
             Stop paying for five tools. Nexus replaces all of them.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {[
             {
               icon: MessageSquare,
@@ -180,83 +198,89 @@ export default function HomePage() {
           ].map((f) => (
             <div
               key={f.title}
-              className="group rounded-2xl border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-6 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+              className="group rounded-2xl border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-5 md:p-6 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
             >
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <f.icon className="w-5 h-5 text-white" />
+              <div
+                className={`w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}
+              >
+                <f.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
-              <h3 className="text-base font-semibold mb-1.5">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+              <h3 className="text-sm md:text-base font-semibold mb-1 md:mb-1.5">
+                {f.title}
+              </h3>
+              <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                {f.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Product tour */}
-      <section id="how" className="max-w-7xl mx-auto px-6 py-24 space-y-24">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section id="how" className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24 space-y-16 md:space-y-24">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] md:text-xs text-blue-400 mb-4 md:mb-6">
               <MessageSquare className="w-3 h-3" />
               Chat
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            <h3 className="text-2xl md:text-4xl font-bold tracking-tight mb-3 md:mb-4">
               Conversations that actually flow
             </h3>
-            <p className="text-slate-400 text-lg mb-6 leading-relaxed">
+            <p className="text-sm md:text-lg text-slate-400 mb-5 md:mb-6 leading-relaxed">
               Real-time messaging with typing indicators, read receipts, message
               editing, threads, and file sharing. It just works.
             </p>
-            <ul className="space-y-3 text-sm text-slate-300">
+            <ul className="space-y-2.5 md:space-y-3 text-xs md:text-sm text-slate-300">
               {[
                 "Instant delivery via WebSockets",
                 "Edit, delete, react, pin — all the essentials",
                 "Threads for keeping big conversations focused",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <li key={item} className="flex items-start gap-2.5 md:gap-3">
+                  <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-xl">
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
-              <p className="text-slate-500 text-sm p-4 text-center">
+          <div className="rounded-2xl border border-white/10 bg-[#0F1424] p-1.5 md:p-2 shadow-xl">
+            <div className="relative aspect-[16/10] rounded-lg md:rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <p className="text-slate-500 text-xs md:text-sm p-3 md:p-4 text-center">
                 Add <code className="text-blue-400">public/chat.png</code>
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="order-2 lg:order-1 rounded-2xl border border-white/10 bg-[#0F1424] p-2 shadow-xl">
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
-              <p className="text-slate-500 text-sm p-4 text-center">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="order-2 lg:order-1 rounded-2xl border border-white/10 bg-[#0F1424] p-1.5 md:p-2 shadow-xl">
+            <div className="relative aspect-[16/10] rounded-lg md:rounded-xl overflow-hidden bg-[#0B1020] flex items-center justify-center">
+              <p className="text-slate-500 text-xs md:text-sm p-3 md:p-4 text-center">
                 Add <code className="text-green-400">public/tasks.png</code>
               </p>
             </div>
           </div>
           <div className="order-1 lg:order-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-xs text-green-400 mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] md:text-xs text-green-400 mb-4 md:mb-6">
               <CheckSquare className="w-3 h-3" />
               Tasks
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            <h3 className="text-2xl md:text-4xl font-bold tracking-tight mb-3 md:mb-4">
               Ship work, not status updates
             </h3>
-            <p className="text-slate-400 text-lg mb-6 leading-relaxed">
+            <p className="text-sm md:text-lg text-slate-400 mb-5 md:mb-6 leading-relaxed">
               Kanban boards that everyone can actually see. Drag tasks between
               columns. Assign priorities. Hit deadlines.
             </p>
-            <ul className="space-y-3 text-sm text-slate-300">
+            <ul className="space-y-2.5 md:space-y-3 text-xs md:text-sm text-slate-300">
               {[
                 "Drag-and-drop between 4 status columns",
                 "Priority levels and due dates",
                 "Live sync — changes appear instantly for everyone",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <li key={item} className="flex items-start gap-2.5 md:gap-3">
+                  <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-400 mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -265,10 +289,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Real stats */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-transparent p-8 md:p-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      {/* Stats */}
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+        <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-transparent p-6 md:p-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-8">
             {[
               { value: "10+", label: "Core features" },
               { value: "WebRTC", label: "Video calls" },
@@ -276,10 +300,10 @@ export default function HomePage() {
               { value: "$0", label: "During beta" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent mb-1">
+                <div className="text-xl md:text-3xl font-bold bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent mb-1">
                   {s.value}
                 </div>
-                <div className="text-xs text-slate-500 uppercase tracking-wider">
+                <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider">
                   {s.label}
                 </div>
               </div>
@@ -289,17 +313,17 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="max-w-6xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+      <section id="pricing" className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="max-w-2xl mx-auto text-center mb-10 md:mb-16">
+          <h2 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
             Simple pricing
           </h2>
-          <p className="text-slate-400 text-lg">
+          <p className="text-sm md:text-lg text-slate-400">
             Free during beta. Paid plans coming soon.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-4 md:gap-6">
           {[
             {
               name: "Free",
@@ -350,38 +374,53 @@ export default function HomePage() {
           ].map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl border p-6 ${
+              className={`relative rounded-2xl border p-5 md:p-6 ${
                 plan.highlight
                   ? "border-blue-500/40 bg-gradient-to-b from-blue-500/10 to-transparent"
                   : "border-white/5 bg-white/[0.02]"
               }`}
             >
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-[10px] font-bold uppercase tracking-wider">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
                   Most popular
                 </div>
               )}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
-                <p className="text-xs text-slate-500 mb-4">{plan.desc}</p>
+              <div className="mb-5 md:mb-6">
+                <h3 className="text-base md:text-lg font-semibold mb-1">
+                  {plan.name}
+                </h3>
+                <p className="text-[10px] md:text-xs text-slate-500 mb-3 md:mb-4">
+                  {plan.desc}
+                </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-3xl md:text-4xl font-bold">
+                    {plan.price}
+                  </span>
                   {plan.period && (
-                    <span className="text-sm text-slate-500">{plan.period}</span>
+                    <span className="text-xs md:text-sm text-slate-500">
+                      {plan.period}
+                    </span>
                   )}
                 </div>
               </div>
-              <ul className="space-y-2.5 mb-6">
+              <ul className="space-y-2 md:space-y-2.5 mb-5 md:mb-6">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
-                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.highlight ? "text-blue-400" : "text-slate-500"}`} />
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 md:gap-2.5 text-xs md:text-sm text-slate-300"
+                  >
+                    <Check
+                      className={`w-3.5 h-3.5 md:w-4 md:h-4 mt-0.5 flex-shrink-0 ${
+                        plan.highlight ? "text-blue-400" : "text-slate-500"
+                      }`}
+                    />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
               <Link
                 href={plan.highlight ? "/register" : "#"}
-                className={`block text-center rounded-xl py-2.5 font-semibold text-sm transition ${
+                className={`block text-center rounded-xl py-2.5 font-semibold text-xs md:text-sm transition ${
                   plan.highlight
                     ? "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white"
                     : "border border-white/10 hover:bg-white/5 text-slate-300"
@@ -395,15 +434,17 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="max-w-3xl mx-auto px-6 py-24">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+      <section id="faq" className="max-w-3xl mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="text-center mb-10 md:mb-16">
+          <h2 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
             Questions?
           </h2>
-          <p className="text-slate-400">Everything you need to know.</p>
+          <p className="text-sm md:text-base text-slate-400">
+            Everything you need to know.
+          </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {[
             {
               q: "Is Nexus really free?",
@@ -434,13 +475,15 @@ export default function HomePage() {
               key={i}
               className="group rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden"
             >
-              <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-white/[0.03] transition list-none">
-                <span className="font-medium pr-4">{item.q}</span>
-                <span className="flex-shrink-0 w-6 h-6 rounded-full border border-white/10 flex items-center justify-center text-slate-400 group-open:rotate-45 transition-transform">
+              <summary className="flex items-center justify-between p-4 md:p-5 cursor-pointer hover:bg-white/[0.03] transition list-none">
+                <span className="font-medium pr-3 md:pr-4 text-sm md:text-base">
+                  {item.q}
+                </span>
+                <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full border border-white/10 flex items-center justify-center text-slate-400 text-sm group-open:rotate-45 transition-transform">
                   +
                 </span>
               </summary>
-              <div className="px-5 pb-5 text-sm text-slate-400 leading-relaxed">
+              <div className="px-4 md:px-5 pb-4 md:pb-5 text-xs md:text-sm text-slate-400 leading-relaxed">
                 {item.a}
               </div>
             </details>
@@ -449,19 +492,19 @@ export default function HomePage() {
       </section>
 
       {/* Final CTA */}
-      <section className="max-w-5xl mx-auto px-6 py-24">
-        <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent p-12 md:p-16 text-center overflow-hidden">
+      <section className="max-w-5xl mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent p-8 md:p-16 text-center overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.15),transparent_70%)]" />
           <div className="relative">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+            <h2 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
               Ready to try it?
             </h2>
-            <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">
+            <p className="text-sm md:text-lg text-slate-400 mb-6 md:mb-8 max-w-xl mx-auto">
               Join the beta. It takes 30 seconds and there&apos;s nothing to pay.
             </p>
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 rounded-xl px-7 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold shadow-lg shadow-blue-500/25 group"
+              className="inline-flex items-center gap-2 rounded-xl px-5 md:px-7 py-3 md:py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition font-semibold shadow-lg shadow-blue-500/25 group text-sm md:text-base"
             >
               Create your workspace
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
@@ -472,46 +515,75 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            <div className="md:col-span-2">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-12">
+            <div className="col-span-2 md:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs">
                   N
                 </div>
                 <span className="text-base font-bold tracking-tight">Nexus</span>
               </Link>
-              <p className="text-sm text-slate-500 max-w-sm">
+              <p className="text-xs md:text-sm text-slate-500 max-w-sm">
                 The all-in-one workspace for teams that move fast. Chat, calls,
                 docs, and tasks — together at last.
               </p>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
                 Product
               </div>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><Link href="#features" className="hover:text-white transition">Features</Link></li>
-                <li><Link href="#pricing" className="hover:text-white transition">Pricing</Link></li>
-                <li><Link href="#faq" className="hover:text-white transition">FAQ</Link></li>
+              <ul className="space-y-2 text-xs md:text-sm text-slate-400">
+                <li>
+                  <Link href="#features" className="hover:text-white transition">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#pricing" className="hover:text-white transition">
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#faq" className="hover:text-white transition">
+                    FAQ
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
                 Account
               </div>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><Link href="/login" className="hover:text-white transition">Sign in</Link></li>
-                <li><Link href="/register" className="hover:text-white transition">Create account</Link></li>
+              <ul className="space-y-2 text-xs md:text-sm text-slate-400">
+                <li>
+                  <Link href="/login" className="hover:text-white transition">
+                    Sign in
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/register" className="hover:text-white transition">
+                    Create account
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} Nexus. Built with Next.js, Prisma, and Supabase.</p>
-            <div className="flex items-center gap-6">
-              <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> Secure</span>
-              <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> Fast</span>
-              <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> Global</span>
+          <div className="pt-6 md:pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] md:text-xs text-slate-500">
+            <p>
+              © {new Date().getFullYear()} Nexus. Built with Next.js, Prisma,
+              and Supabase.
+            </p>
+            <div className="flex items-center gap-4 md:gap-6">
+              <span className="flex items-center gap-1.5">
+                <Shield className="w-3 h-3" /> Secure
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-3 h-3" /> Fast
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3 h-3" /> Global
+              </span>
             </div>
           </div>
         </div>

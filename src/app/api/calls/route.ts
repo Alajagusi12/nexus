@@ -11,24 +11,47 @@ export async function POST(req: Request) {
 
     const { conversationId, callType = "video" } = await req.json();
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
+    if (!conversationId) {
+      return NextResponse.json(
+        { error: "conversationId required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify the user is a member of the conversation
+    const membership = await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId: session.user.id,
+        },
+      },
     });
 
-    if (!conversation) {
+    if (!membership) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const receiverId =
-      conversation.user1Id === session.user.id
-        ? conversation.user2Id
-        : conversation.user1Id;
+    // Get the other member (for 1-on-1 calls)
+    const otherMember = await prisma.conversationMember.findFirst({
+      where: {
+        conversationId,
+        userId: { not: session.user.id },
+      },
+    });
+
+    if (!otherMember) {
+      return NextResponse.json(
+        { error: "No receiver found" },
+        { status: 400 }
+      );
+    }
 
     const call = await prisma.call.create({
       data: {
         conversationId,
         callerId: session.user.id,
-        receiverId,
+        receiverId: otherMember.userId,
         callType,
         status: "ringing",
       },
@@ -50,6 +73,13 @@ export async function PATCH(req: Request) {
 
     const { callId, status } = await req.json();
 
+    if (!callId || !status) {
+      return NextResponse.json(
+        { error: "callId and status required" },
+        { status: 400 }
+      );
+    }
+
     const call = await prisma.call.update({
       where: { id: callId },
       data: { status },
@@ -57,6 +87,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(call);
   } catch (err) {
+    console.error("Update call error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
@@ -81,6 +112,7 @@ export async function GET() {
 
     return NextResponse.json(activeCall || null);
   } catch (err) {
+    console.error("Get call error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
-}
+}   
