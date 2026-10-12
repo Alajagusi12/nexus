@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Phone, PhoneOff, Video } from "lucide-react";
+
+type IncomingCall = {
+  id: string;
+  callType: string;
+  caller: { id: string; name: string | null; email: string };
+};
+
+export function IncomingCallPopup() {
+  const [call, setCall] = useState<IncomingCall | null>(null);
+  const router = useRouter();
+  const isPolling = useRef(false);
+
+  useEffect(() => {
+    if (isPolling.current) return;
+    isPolling.current = true;
+
+    async function checkCalls() {
+      try {
+        const res = await fetch("/api/calls", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.id && data.status === "ringing") {
+          setCall(data);
+        } else {
+          setCall(null);
+        }
+      } catch (err) {
+        // silent
+      }
+    }
+
+    checkCalls();
+    const interval = setInterval(checkCalls, 5000);
+
+    return () => {
+      clearInterval(interval);
+      isPolling.current = false;
+    };
+  }, []);
+
+  async function accept() {
+    if (!call) return;
+    await fetch("/api/calls", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callId: call.id, status: "active" }),
+    });
+    router.push(`/dashboard/chat/call/${call.id}`);
+    setCall(null);
+  }
+
+  async function decline() {
+    if (!call) return;
+    await fetch("/api/calls", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callId: call.id, status: "declined" }),
+    });
+    setCall(null);
+  }
+
+  return (
+    <AnimatePresence>
+      {call && (
+        <motion.div
+          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 50, scale: 0.9 }}
+          className="fixed bottom-6 right-6 z-[200] w-96 rounded-2xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden"
+        >
+          <div className="p-5">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl font-semibold flex-shrink-0 animate-pulse">
+                {call.caller.name?.[0]?.toUpperCase() || "?"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">
+                  {call.caller.name || call.caller.email}
+                </p>
+                <p className="text-sm text-slate-400 flex items-center gap-1">
+                  {call.callType === "video" ? (
+                    <>
+                      <Video className="w-3.5 h-3.5" /> Incoming video call
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="w-3.5 h-3.5" /> Incoming voice call
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={decline}
+                className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 transition py-3 flex items-center justify-center gap-2 font-semibold"
+              >
+                <PhoneOff className="w-5 h-5" />
+                Decline
+              </button>
+              <button
+                onClick={accept}
+                className="flex-1 rounded-xl bg-green-500 hover:bg-green-600 transition py-3 flex items-center justify-center gap-2 font-semibold"
+              >
+                <Phone className="w-5 h-5" />
+                Accept
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
