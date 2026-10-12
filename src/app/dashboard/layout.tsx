@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -39,6 +39,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
+  const lastScrollRef = useRef(0);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -69,6 +71,25 @@ export default function DashboardLayout({
 
     return () => clearInterval(interval);
   }, [status]);
+
+  useEffect(() => {
+    const el = document.querySelector(".dashboard-scroll");
+    if (!el) return;
+
+    const handleScroll = () => {
+      const current = (el as HTMLElement).scrollTop;
+      const diff = current - lastScrollRef.current;
+      if (diff > 10 && current > 80) {
+        setNavHidden(true);
+      } else if (diff < -10) {
+        setNavHidden(false);
+      }
+      lastScrollRef.current = current;
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
 
   if (status === "loading" || !session) {
     return (
@@ -217,9 +238,15 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</div>
+        <div className="dashboard-scroll flex-1 overflow-y-auto pb-20 md:pb-0">
+          {children}
+        </div>
 
-        <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-background border-t border-border/20 z-30">
+        <nav
+          className={`fixed bottom-0 left-0 right-0 md:hidden bg-background/95 backdrop-blur-lg border-t border-border/20 z-30 transition-transform duration-300 ${
+            navHidden ? "translate-y-full" : "translate-y-0"
+          }`}
+        >
           <div className="flex items-center justify-around h-16 px-2">
             {navItems.map((item) => {
               const isActive =
