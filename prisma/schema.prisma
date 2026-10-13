@@ -161,17 +161,18 @@ model Document {
 }
 
 model Task {
-  id          String     @id @default(cuid())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?
-  workspaceId String
-  creatorId   String
-  assigneeId  String?
-  order       Int        @default(0)
-  createdAt   DateTime   @default(now())
+  id              String     @id @default(cuid())
+  title           String
+  description     String?
+  status          TaskStatus @default(TODO)
+  priority        Priority   @default(MEDIUM)
+  dueDate         DateTime?
+  workspaceId     String
+  creatorId       String
+  assigneeId      String?
+  sourceMessageId String?
+  order           Int        @default(0)
+  createdAt       DateTime   @default(now())
 
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creator     User      @relation("TaskCreator", fields: [creatorId], references: [id])
