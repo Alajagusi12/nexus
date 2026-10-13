@@ -25,6 +25,8 @@ import {
   Pencil,
   MessageCircle,
   Pin,
+  CheckSquare,
+  Calendar,
 } from "lucide-react";
 
 type OtherUser = {
@@ -86,6 +88,13 @@ const FULL_EMOJIS = [
 ];
 const TYPING_TIMEOUT = 2000;
 
+const PRIORITIES = [
+  { value: "LOW", label: "Low", color: "text-slate-400" },
+  { value: "MEDIUM", label: "Medium", color: "text-blue-400" },
+  { value: "HIGH", label: "High", color: "text-orange-400" },
+  { value: "URGENT", label: "Urgent", color: "text-red-400" },
+];
+
 export default function ChatPage() {
   const { data: session } = useSession();
 
@@ -112,10 +121,18 @@ export default function ChatPage() {
   const [searchMsgResults, setSearchMsgResults] = useState<Message[]>([]);
   const [searchingMsgs, setSearchingMsgs] = useState(false);
   const [openThread, setOpenThread] = useState<Message | null>(null);
-  const [revealedMsgId, setRevealedMsgId] = useState<string | null>(null);
-  const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [showPinnedList, setShowPinnedList] = useState(false);
+  const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
+
+  const [taskFromMessage, setTaskFromMessage] = useState<Message | null>(null);
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+    dueDate: "",
+  });
+  const [creatingTask, setCreatingTask] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +170,6 @@ export default function ChatPage() {
     if (activeId) {
       sessionStorage.setItem("lastActiveConversation", activeId);
       setOpenThread(null);
-      setRevealedMsgId(null);
       setShowPinnedList(false);
       loadPins();
     } else {
@@ -275,9 +291,7 @@ export default function ChatPage() {
     setSearchingMsgs(true);
     const t = setTimeout(() => {
       fetch(
-        `/api/conversations/${activeId}/search?q=${encodeURIComponent(
-          msgSearch
-        )}`,
+        `/api/conversations/${activeId}/search?q=${encodeURIComponent(msgSearch)}`,
         { cache: "no-store" }
       )
         .then((res) => res.json())
@@ -313,6 +327,19 @@ export default function ChatPage() {
     }, 300);
     return () => clearTimeout(t);
   }, [search, showNewDm]);
+
+  async function loadPins() {
+    if (!activeId) return;
+    try {
+      const res = await fetch(`/api/conversations/${activeId}/pins`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      setPinnedMessages(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   function toggleUser(user: OtherUser) {
     setSelectedUsers((prev) =>
@@ -446,7 +473,6 @@ export default function ChatPage() {
 
     const userId = session.user.id;
 
-    // Optimistic update
     setMessages((prev) =>
       prev.map((m) => {
         if (m.id !== messageId) return m;
@@ -482,7 +508,6 @@ export default function ChatPage() {
       }
     } catch (err) {
       console.error(err);
-      // Revert on failure
       fetch(`/api/conversations/${activeId}/messages`, { cache: "no-store" })
         .then((r) => r.json())
         .then((data) => {
@@ -497,6 +522,58 @@ export default function ChatPage() {
         })
         .catch(() => {});
     }
+  }
+
+  async function togglePin(msg: Message) {
+    if (!activeId) return;
+    setActionSheetMsg(null);
+
+    const isPinned = pinnedMessages.some((p) => p.id === msg.id);
+
+    if (isPinned) {
+      setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
+    } else {
+      setPinnedMessages((prev) => [msg, ...prev]);
+    }
+
+    try {
+      const res = await fetch(
+        `/api/conversations/${activeId}/messages/${msg.id}/pin`,
+        { method: "POST" }
+      );
+      if (res.ok) {
+        const updated = await res.json();
+        if (updated.pinnedAt) {
+          setPinnedMessages((prev) => {
+            if (prev.some((p) => p.id === updated.id)) return prev;
+            return [updated, ...prev];
+          });
+          toast.success("Message pinned");
+        } else {
+          setPinnedMessages((prev) => prev.filter((p) => p.id !== updated.id));
+          toast.success("Message unpinned");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to pin");
+      loadPins();
+    }
+  }
+
+  function scrollToMessage(messageId: string) {
+    setShowPinnedList(false);
+    setOpenThread(null);
+    setTimeout(() => {
+      const el = document.getElementById(`msg-${messageId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-yellow-500", "rounded-lg");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-yellow-500", "rounded-lg");
+        }, 2000);
+      }
+    }, 150);
   }
 
   async function startEditing(msg: Message) {
@@ -552,71 +629,6 @@ export default function ChatPage() {
       toast.error("Failed to delete");
     }
   }
-  async function loadPins() {
-    if (!activeId) return;
-    try {
-      const res = await fetch(`/api/conversations/${activeId}/pins`, {
-        cache: "no-store",
-      });
-      const data = await res.json();
-      setPinnedMessages(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function togglePin(msg: Message) {
-    if (!activeId) return;
-    setActionSheetMsg(null);
-
-    const isPinned = pinnedMessages.some((p) => p.id === msg.id);
-
-    // Optimistic update
-    if (isPinned) {
-      setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
-    } else {
-      setPinnedMessages((prev) => [msg, ...prev]);
-    }
-
-    try {
-      const res = await fetch(
-        `/api/conversations/${activeId}/messages/${msg.id}/pin`,
-        { method: "POST" }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        if (updated.pinnedAt) {
-          setPinnedMessages((prev) => {
-            if (prev.some((p) => p.id === updated.id)) return prev;
-            return [updated, ...prev];
-          });
-          toast.success("Message pinned");
-        } else {
-          setPinnedMessages((prev) => prev.filter((p) => p.id !== updated.id));
-          toast.success("Message unpinned");
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to pin");
-      loadPins();
-    }
-  }
-
-  function scrollToMessage(messageId: string) {
-    setShowPinnedList(false);
-    setOpenThread(null);
-    setTimeout(() => {
-      const el = document.getElementById(`msg-${messageId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-yellow-500", "rounded-lg");
-        setTimeout(() => {
-          el.classList.remove("ring-2", "ring-yellow-500", "rounded-lg");
-        }, 2000);
-      }
-    }, 150);
-  }
 
   function handleReplyCountChange(parentId: string, count: number) {
     setMessages((prev) =>
@@ -646,7 +658,54 @@ export default function ChatPage() {
       longPressTriggeredRef.current = false;
       return;
     }
-    if (revealedMsgId) setRevealedMsgId(null);
+  }
+
+  function openTaskFromMessage(msg: Message) {
+    setActionSheetMsg(null);
+    setTaskFromMessage(msg);
+    setTaskForm({
+      title: msg.content?.slice(0, 100) || "Task from message",
+      description: msg.content || "",
+      priority: "MEDIUM",
+      dueDate: "",
+    });
+  }
+
+  async function createTaskFromMessage() {
+    if (!taskFromMessage || !taskForm.title.trim()) return;
+    setCreatingTask(true);
+
+    try {
+      const res = await fetch(`/api/messages/${taskFromMessage.id}/to-task`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: taskForm.title.trim(),
+          description: taskForm.description.trim(),
+          priority: taskForm.priority,
+          dueDate: taskForm.dueDate || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+
+      toast.success("Task created");
+      setTaskFromMessage(null);
+      setTaskForm({
+        title: "",
+        description: "",
+        priority: "MEDIUM",
+        dueDate: "",
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to create task");
+    } finally {
+      setCreatingTask(false);
+    }
   }
 
   function parseReactions(reactions: string | null | undefined) {
@@ -867,6 +926,7 @@ export default function ChatPage() {
               </>
             )}
           </header>
+
           {pinnedMessages.length > 0 && (
             <button
               onClick={() => setShowPinnedList(true)}
@@ -881,7 +941,9 @@ export default function ChatPage() {
                 {" — "}
                 {pinnedMessages[0]?.content || "📎 Attachment"}
               </span>
-              <span className="text-xs text-muted flex-shrink-0">View all</span>
+              <span className="text-xs text-muted flex-shrink-0">
+                View all
+              </span>
             </button>
           )}
 
@@ -1063,6 +1125,13 @@ export default function ChatPage() {
                       </div>
 
                       <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
+                        <button
+                          onClick={() => openTaskFromMessage(msg)}
+                          className="p-1.5 rounded-lg hover:bg-green-500/20 transition"
+                          title="Turn into task"
+                        >
+                          <CheckSquare className="w-4 h-4 text-green-500" />
+                        </button>
                         <button
                           onClick={() => setOpenThread(msg)}
                           className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
@@ -1264,6 +1333,16 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      {openThread && activeId && (
+        <ThreadPanel
+          conversationId={activeId}
+          parentMessage={openThread}
+          onClose={() => setOpenThread(null)}
+          onReplyCountChange={handleReplyCountChange}
+        />
+      )}
+      {/* Pinned messages list */}
       {showPinnedList && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1330,132 +1409,283 @@ export default function ChatPage() {
         </div>
       )}
 
-      {openThread && activeId && (
-        <ThreadPanel
-          conversationId={activeId}
-          parentMessage={openThread}
-          onClose={() => setOpenThread(null)}
-          onReplyCountChange={handleReplyCountChange}
-        />
-      )}
-
-      {actionSheetMsg && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center"
-          onClick={() => setActionSheetMsg(null)}
-        >
-          <motion.div
-            initial={{ y: 300, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 300, opacity: 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden pb-4 md:pb-0"
+      {/* Mobile action sheet (long-press) */}
+      <AnimatePresence>
+        {actionSheetMsg && (
+          <div
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center"
+            onClick={() => setActionSheetMsg(null)}
           >
-            <div className="md:hidden flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-muted/40" />
-            </div>
+            <motion.div
+              initial={{ y: 300, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 300, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden pb-4 md:pb-0"
+            >
+              <div className="md:hidden flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-muted/40" />
+              </div>
 
-            <div className="px-5 py-4 border-b border-border">
-              <p className="text-xs text-muted mb-1">
-                {actionSheetMsg.user?.name || "User"}
-              </p>
-              <p className="text-sm text-foreground line-clamp-2">
-                {actionSheetMsg.content || "📎 Attachment"}
-              </p>
-            </div>
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-xs text-muted mb-1">
+                  {actionSheetMsg.user?.name || "User"}
+                </p>
+                <p className="text-sm text-foreground line-clamp-2">
+                  {actionSheetMsg.content || "📎 Attachment"}
+                </p>
+              </div>
 
-            <div className="px-3 py-2 border-b border-border">
-              <div className="flex gap-1 justify-between">
-                {QUICK_EMOJIS.map((emoji) => (
+              <div className="px-3 py-2 border-b border-border">
+                <div className="flex gap-1 justify-between">
+                  {QUICK_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        toggleReaction(actionSheetMsg.id, emoji);
+                        setActionSheetMsg(null);
+                      }}
+                      className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition text-2xl active:scale-95"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
                   <button
-                    key={emoji}
                     onClick={() => {
-                      toggleReaction(actionSheetMsg.id, emoji);
+                      setEmojiPickerFor(actionSheetMsg.id);
                       setActionSheetMsg(null);
                     }}
-                    className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition text-2xl active:scale-95"
+                    className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition flex items-center justify-center active:scale-95"
                   >
-                    {emoji}
+                    <Plus className="w-5 h-5 text-muted" />
                   </button>
-                ))}
+                </div>
+              </div>
+
+              <div className="p-2">
+                <button
+                  onClick={() => openTaskFromMessage(actionSheetMsg)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
+                >
+                  <CheckSquare className="w-5 h-5 text-green-500" />
+                  <span className="text-sm font-medium">Turn into task</span>
+                </button>
+
                 <button
                   onClick={() => {
-                    setEmojiPickerFor(actionSheetMsg.id);
+                    setOpenThread(actionSheetMsg);
                     setActionSheetMsg(null);
                   }}
-                  className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition flex items-center justify-center active:scale-95"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
                 >
-                  <Plus className="w-5 h-5 text-muted" />
+                  <MessageCircle className="w-5 h-5 text-muted" />
+                  <span className="text-sm font-medium">Reply in thread</span>
                 </button>
-              </div>
-            </div>
 
-            <div className="p-2">
-              <button
-                onClick={() => {
-                  setOpenThread(actionSheetMsg);
-                  setActionSheetMsg(null);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
-              >
-                <MessageCircle className="w-5 h-5 text-muted" />
-                <span className="text-sm font-medium">Reply in thread</span>
-              </button>
-              <button
-                onClick={() => togglePin(actionSheetMsg)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
-              >
-                <Pin
-                  className={`w-5 h-5 ${
-                    pinnedMessages.some((p) => p.id === actionSheetMsg.id)
-                      ? "text-yellow-500"
-                      : "text-muted"
-                  }`}
-                />
-                <span className="text-sm font-medium">
-                  {pinnedMessages.some((p) => p.id === actionSheetMsg.id)
-                    ? "Unpin message"
-                    : "Pin message"}
-                </span>
-              </button>
-
-              {actionSheetMsg.userId === session?.user?.id &&
-                actionSheetMsg.content && (
-                  <button
-                    onClick={() => startEditing(actionSheetMsg)}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
-                  >
-                    <Pencil className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium">Edit message</span>
-                  </button>
-                )}
-
-              {actionSheetMsg.userId === session?.user?.id && (
                 <button
-                  onClick={() => deleteMessage(actionSheetMsg.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition text-left"
+                  onClick={() => togglePin(actionSheetMsg)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
                 >
-                  <X className="w-5 h-5 text-red-500" />
-                  <span className="text-sm font-medium text-red-500">
-                    Delete message
+                  <Pin
+                    className={`w-5 h-5 ${
+                      pinnedMessages.some((p) => p.id === actionSheetMsg.id)
+                        ? "text-yellow-500"
+                        : "text-muted"
+                    }`}
+                  />
+                  <span className="text-sm font-medium">
+                    {pinnedMessages.some((p) => p.id === actionSheetMsg.id)
+                      ? "Unpin message"
+                      : "Pin message"}
                   </span>
                 </button>
-              )}
-            </div>
 
-            <div className="px-3 pt-2 md:hidden">
-              <button
-                onClick={() => setActionSheetMsg(null)}
-                className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+                {actionSheetMsg.userId === session?.user?.id &&
+                  actionSheetMsg.content && (
+                    <button
+                      onClick={() => startEditing(actionSheetMsg)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
+                    >
+                      <Pencil className="w-5 h-5 text-blue-500" />
+                      <span className="text-sm font-medium">Edit message</span>
+                    </button>
+                  )}
 
+                {actionSheetMsg.userId === session?.user?.id && (
+                  <button
+                    onClick={() => deleteMessage(actionSheetMsg.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition text-left"
+                  >
+                    <X className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-500">
+                      Delete message
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              <div className="px-3 pt-2 md:hidden">
+                <button
+                  onClick={() => setActionSheetMsg(null)}
+                  className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition text-sm font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Task-from-message modal */}
+      <AnimatePresence>
+        {taskFromMessage && (
+          <div
+            className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center"
+            onClick={() => !creatingTask && setTaskFromMessage(null)}
+          >
+            <motion.div
+              initial={{ y: 400, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 400, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full md:max-w-lg bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
+            >
+              <div className="md:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-muted/40" />
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-green-500" />
+                  Create task
+                </h3>
+                <button
+                  onClick={() => setTaskFromMessage(null)}
+                  disabled={creatingTask}
+                  className="p-1.5 rounded-lg hover:bg-foreground/10 transition disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div className="rounded-xl bg-foreground/5 border border-border p-3">
+                  <p className="text-[10px] text-muted mb-1 uppercase tracking-wider">
+                    From message
+                  </p>
+                  <p className="text-xs text-foreground/80 line-clamp-2">
+                    {taskFromMessage.content || "📎 Attachment"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground/80">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={taskForm.title}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, title: e.target.value })
+                    }
+                    autoFocus
+                    className="w-full rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                    placeholder="What needs to be done?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground/80">
+                    Description
+                  </label>
+                  <textarea
+                    value={taskForm.description}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, description: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
+                    placeholder="Add details..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground/80">
+                    Priority
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PRIORITIES.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() =>
+                          setTaskForm({
+                            ...taskForm,
+                            priority: p.value as any,
+                          })
+                        }
+                        className={`py-2.5 rounded-xl border text-xs font-medium transition ${
+                          taskForm.priority === p.value
+                            ? "border-green-500/50 bg-green-500/10 " + p.color
+                            : "border-border bg-foreground/5 hover:bg-foreground/10 text-muted"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground/80">
+                    Due date (optional)
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                    <input
+                      type="date"
+                      value={taskForm.dueDate}
+                      onChange={(e) =>
+                        setTaskForm({ ...taskForm, dueDate: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-border bg-foreground/5 pl-10 pr-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-border flex-shrink-0 flex gap-2 pb-6 md:pb-4">
+                <button
+                  onClick={() => setTaskFromMessage(null)}
+                  disabled={creatingTask}
+                  className="flex-1 py-3 rounded-xl border border-border hover:bg-foreground/5 transition text-sm font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createTaskFromMessage}
+                  disabled={creatingTask || !taskForm.title.trim()}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 transition text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {creatingTask ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create task"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* New DM modal */}
       {showNewDm && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1611,6 +1841,7 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Message search modal */}
       {showSearch && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
