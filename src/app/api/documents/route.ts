@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCurrentWorkspace } from "@/lib/workspace";
 
 export async function GET() {
   try {
@@ -9,7 +10,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const workspace = await getCurrentWorkspace(session.user.id);
+
     const documents = await prisma.document.findMany({
+      where: { workspaceId: workspace.id },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -35,16 +39,7 @@ export async function POST(req: Request) {
 
     const { title } = await req.json();
 
-    let workspace = await prisma.workspace.findFirst();
-
-    if (!workspace) {
-      workspace = await prisma.workspace.create({
-        data: {
-          name: "My Workspace",
-          slug: "my-workspace-" + Date.now(),
-        },
-      });
-    }
+    const workspace = await getCurrentWorkspace(session.user.id);
 
     const document = await prisma.document.create({
       data: {

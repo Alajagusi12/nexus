@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCurrentWorkspace } from "@/lib/workspace";
 
 export async function GET() {
   try {
@@ -9,7 +10,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const workspace = await getCurrentWorkspace(session.user.id);
+
     const tasks = await prisma.task.findMany({
+      where: { workspaceId: workspace.id },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       include: {
         creator: { select: { id: true, name: true, email: true } },
@@ -31,22 +35,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { title, description, priority, dueDate } = await req.json();
+    const { title, description, priority, dueDate, assigneeId } =
+      await req.json();
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "Title required" }, { status: 400 });
     }
 
-    let workspace = await prisma.workspace.findFirst();
-
-    if (!workspace) {
-      workspace = await prisma.workspace.create({
-        data: {
-          name: "My Workspace",
-          slug: "my-workspace-" + Date.now(),
-        },
-      });
-    }
+    const workspace = await getCurrentWorkspace(session.user.id);
 
     const task = await prisma.task.create({
       data: {
@@ -56,6 +52,7 @@ export async function POST(req: Request) {
         dueDate: dueDate ? new Date(dueDate) : null,
         workspaceId: workspace.id,
         creatorId: session.user.id,
+        assigneeId: assigneeId || null,
       },
       include: {
         creator: { select: { id: true, name: true, email: true } },

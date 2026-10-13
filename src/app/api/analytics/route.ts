@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCurrentWorkspace } from "@/lib/workspace";
 
 export async function GET() {
   try {
@@ -10,16 +11,20 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const workspace = await getCurrentWorkspace(userId);
 
-    // Get conversations this user is part of
+    // Get conversations in this workspace that user is a member of
     const memberships = await prisma.conversationMember.findMany({
-      where: { userId },
+      where: {
+        userId,
+        conversation: { workspaceId: workspace.id },
+      },
       select: { conversationId: true },
     });
 
     const conversationIds = memberships.map((m) => m.conversationId);
 
-    // Total counts
+    // Total counts (scoped to workspace)
     const [
       totalMessages,
       totalTasks,
@@ -30,11 +35,16 @@ export async function GET() {
       prisma.message.count({
         where: { conversationId: { in: conversationIds } },
       }),
-      prisma.task.count(),
-      prisma.task.count({ where: { status: "DONE" } }),
-      prisma.document.count(),
+      prisma.task.count({ where: { workspaceId: workspace.id } }),
+      prisma.task.count({
+        where: { workspaceId: workspace.id, status: "DONE" },
+      }),
+      prisma.document.count({ where: { workspaceId: workspace.id } }),
       prisma.conversation.count({
-        where: { id: { in: conversationIds } },
+        where: {
+          id: { in: conversationIds },
+          workspaceId: workspace.id,
+        },
       }),
     ]);
 
@@ -74,12 +84,20 @@ export async function GET() {
       })
     );
 
-    // Tasks by status
+    // Tasks by status (scoped to workspace)
     const [todo, inProgress, review, done] = await Promise.all([
-      prisma.task.count({ where: { status: "TODO" } }),
-      prisma.task.count({ where: { status: "IN_PROGRESS" } }),
-      prisma.task.count({ where: { status: "REVIEW" } }),
-      prisma.task.count({ where: { status: "DONE" } }),
+      prisma.task.count({
+        where: { workspaceId: workspace.id, status: "TODO" },
+      }),
+      prisma.task.count({
+        where: { workspaceId: workspace.id, status: "IN_PROGRESS" },
+      }),
+      prisma.task.count({
+        where: { workspaceId: workspace.id, status: "REVIEW" },
+      }),
+      prisma.task.count({
+        where: { workspaceId: workspace.id, status: "DONE" },
+      }),
     ]);
 
     const tasksChart = [
@@ -89,7 +107,7 @@ export async function GET() {
       { name: "Done", value: done, color: "#22c55e" },
     ];
 
-    // Most active users (by message count in last 30 days)
+    // Most active users (by message count in last 30 days, scoped to workspace convos)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -121,7 +139,7 @@ export async function GET() {
       };
     });
 
-    // Recent activity (last 10 messages)
+    // Recent activity (last 10 messages, scoped to workspace)
     const recentActivity = await prisma.message.findMany({
       where: { conversationId: { in: conversationIds } },
       include: {
