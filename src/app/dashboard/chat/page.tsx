@@ -1422,7 +1422,7 @@ export default function ChatPage() {
               exit={{ y: 300, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden pb-4 md:pb-0"
+              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col pb-4 md:pb-0"
             >
               <div className="md:hidden flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-muted/40" />
@@ -1463,7 +1463,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="p-2">
+              <div className="p-2 overflow-y-auto">
                 <button
                   onClick={() => openTaskFromMessage(actionSheetMsg)}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
