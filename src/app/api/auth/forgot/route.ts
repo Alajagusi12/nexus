@@ -31,10 +31,17 @@ export async function POST(req: Request) {
       },
     });
 
-    // In production, send email with reset link
-    // For now, return the link directly (demo mode)
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const resetLink = `${baseUrl}/reset-password?token=${token}`;
+    // Build the correct base URL — works on Vercel and locally
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXTAUTH_URL || "http://localhost:3000";
+
+    // For local dev, force the known production URL
+    const finalBaseUrl = baseUrl.includes("localhost")
+      ? "https://nexus-iota-two-17.vercel.app"
+      : baseUrl;
+
+    const resetLink = `${finalBaseUrl}/reset-password?token=${token}`;
 
     console.log("=== PASSWORD RESET LINK ===");
     console.log(`Email: ${email}`);
