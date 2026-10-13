@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -23,6 +23,10 @@ import {
   ArrowLeft,
   MoreVertical,
   X,
+  Clock,
+  Hash,
+  AlignLeft,
+  Search,
 } from "lucide-react";
 
 type Document = {
@@ -32,6 +36,25 @@ type Document = {
   updatedAt: string;
   createdAt: string;
 };
+
+function stripHtml(html: string) {
+  if (typeof window === "undefined") return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+}
+
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(date).toLocaleDateString("en", {
+    month: "short",
+    day: "numeric",
+  });
+}
 
 export default function DocsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -45,6 +68,8 @@ export default function DocsPage() {
   );
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showDocMenu, setShowDocMenu] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastSaved = useRef<string>("");
 
@@ -64,9 +89,19 @@ export default function DocsPage() {
       },
     },
     onUpdate: ({ editor }) => {
-      scheduleSave(editor.getHTML());
+      const html = editor.getHTML();
+      scheduleSave(html);
+      updateWordCount(editor.getText());
     },
   });
+
+  function updateWordCount(text: string) {
+    const words = text
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    setWordCount(words.length);
+  }
 
   async function loadDocuments() {
     try {
@@ -98,6 +133,7 @@ export default function DocsPage() {
         lastSaved.current = data.content || "";
         if (editor && data.content !== undefined) {
           editor.commands.setContent(data.content || "");
+          updateWordCount(stripHtml(data.content || ""));
         }
         setLoadingDoc(false);
       })
@@ -184,6 +220,12 @@ export default function DocsPage() {
     setShowMobileSidebar(false);
   }
 
+  const filteredDocuments = useMemo(() => {
+    if (!searchQuery.trim()) return documents;
+    const q = searchQuery.toLowerCase();
+    return documents.filter((d) => d.title.toLowerCase().includes(q));
+  }, [documents, searchQuery]);
+
   if (!editor) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -194,7 +236,7 @@ export default function DocsPage() {
 
   const Sidebar = (
     <>
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="p-3 md:p-4 border-b border-border flex items-center justify-between flex-shrink-0">
         <h2 className="font-semibold flex items-center gap-2 text-sm">
           <FileText className="w-4 h-4" />
           Documents
@@ -216,10 +258,34 @@ export default function DocsPage() {
         </div>
       </div>
 
+      {/* Search */}
+      {!loading && documents.length > 3 && (
+        <div className="p-3 border-b border-border flex-shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+              className="w-full rounded-lg border border-border bg-foreground/5 pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted" />
+          <div className="p-3 space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border/50 p-3 animate-pulse"
+              >
+                <div className="h-3.5 rounded bg-foreground/5 mb-2 w-3/4" />
+                <div className="h-3 rounded bg-foreground/5 w-1/3" />
+              </div>
+            ))}
           </div>
         ) : documents.length === 0 ? (
           <div className="text-center py-12 px-4 text-muted text-sm">
@@ -236,8 +302,12 @@ export default function DocsPage() {
               New document
             </button>
           </div>
+        ) : filteredDocuments.length === 0 ? (
+          <div className="text-center py-8 px-4 text-muted text-sm">
+            No documents match "{searchQuery}"
+          </div>
         ) : (
-          documents.map((doc) => (
+          filteredDocuments.map((doc) => (
             <div
               key={doc.id}
               className={`group flex items-center gap-2 p-3 border-b border-border/50 transition cursor-pointer ${
@@ -251,11 +321,9 @@ export default function DocsPage() {
                 <p className="text-sm font-medium truncate">
                   {doc.title || "Untitled"}
                 </p>
-                <p className="text-xs text-muted mt-0.5">
-                  {new Date(doc.updatedAt).toLocaleDateString("en", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                <p className="text-xs text-muted mt-0.5 flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  {timeAgo(doc.updatedAt)}
                 </p>
               </div>
               <button
@@ -263,7 +331,7 @@ export default function DocsPage() {
                   e.stopPropagation();
                   deleteDocument(doc.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition flex-shrink-0"
+                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition flex-shrink-0"
                 title="Delete"
               >
                 <Trash2 className="w-3.5 h-3.5 text-red-500" />
@@ -282,7 +350,7 @@ export default function DocsPage() {
         {Sidebar}
       </aside>
 
-      {/* Mobile sidebar (slide over) */}
+      {/* Mobile sidebar */}
       <AnimatePresence>
         {showMobileSidebar && (
           <>
@@ -339,7 +407,7 @@ export default function DocsPage() {
                       className="hidden sm:flex text-xs text-muted items-center gap-1"
                     >
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Saving...
+                      Saving
                     </motion.span>
                   )}
                   {saveStatus === "saved" && (
@@ -456,19 +524,48 @@ export default function DocsPage() {
                 icon={Redo}
                 title="Redo"
               />
+
+              <div className="flex-1" />
+
+              {/* Word count */}
+              <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted flex-shrink-0">
+                <span className="flex items-center gap-1">
+                  <AlignLeft className="w-3 h-3" />
+                  {wordCount} {wordCount === 1 ? "word" : "words"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {Math.max(1, Math.ceil(wordCount / 200))}m read
+                </span>
+              </div>
             </div>
 
             {/* Editor content */}
             <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-10 pb-24 md:pb-10">
               <div className="max-w-3xl mx-auto w-full">
                 {loadingDoc ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  <div className="space-y-3 animate-pulse">
+                    <div className="h-6 rounded bg-foreground/5 w-3/4" />
+                    <div className="h-4 rounded bg-foreground/5 w-full" />
+                    <div className="h-4 rounded bg-foreground/5 w-5/6" />
+                    <div className="h-4 rounded bg-foreground/5 w-2/3" />
                   </div>
                 ) : (
                   <EditorContent editor={editor} />
                 )}
               </div>
+            </div>
+
+            {/* Mobile word count bar */}
+            <div className="md:hidden border-t border-border px-4 py-2 flex items-center justify-between text-[10px] text-muted flex-shrink-0 pb-20 bg-background">
+              <span className="flex items-center gap-1">
+                <AlignLeft className="w-3 h-3" />
+                {wordCount} {wordCount === 1 ? "word" : "words"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {Math.max(1, Math.ceil(wordCount / 200))}m read
+              </span>
             </div>
           </>
         ) : (
