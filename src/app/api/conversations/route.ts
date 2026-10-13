@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCurrentWorkspace } from "@/lib/workspace";
 
 export async function GET() {
   try {
@@ -11,8 +12,15 @@ export async function GET() {
 
     const userId = session.user.id;
 
+    // Get the user's current workspace
+    const workspace = await getCurrentWorkspace(userId);
+
+    // Find conversations this user is a member of, in this workspace
     const memberships = await prisma.conversationMember.findMany({
-      where: { userId },
+      where: {
+        userId,
+        conversation: { workspaceId: workspace.id },
+      },
       include: {
         conversation: {
           include: {
@@ -30,63 +38,58 @@ export async function GET() {
               },
             },
             messages: {
-              orderBy: { createdAt: "desc" },
               take: 1,
+              orderBy: { createdAt: "desc" },
               include: {
-                user: { select: { name: true, email: true } },
+                user: { select: { id: true, name: true } },
               },
             },
           },
         },
       },
-      orderBy: { conversation: { updatedAt: "desc" } },
     });
 
-    const formatted = memberships.map((m) => {
-      const c = m.conversation;
-      const others = c.members
-        .filter((mem) => mem.userId !== userId)
-        .map((mem) => mem.user);
-
-      let displayName: string;
-      let displayImage: string | null = null;
-
-      if (c.isGroup) {
-        displayName = c.name || "Group chat";
-      } else {
-        const other = others[0];
-        displayName = other?.name || other?.email || "Unknown";
-        displayImage = other?.image || null;
-      }
-
-      const lastMessage = c.messages[0] || null;
+    const conversations = memberships.map(({ conversation }) => {
+      const otherMembers = conversation.members.filter(
+        (m) => m.userId !== userId
+      );
+      const otherUser = otherMembers[0]?.user || null;
+      const lastMessage = conversation.messages[0];
 
       return {
-        id: c.id,
-        isGroup: c.isGroup,
-        name: c.name,
-        displayName,
-        displayImage,
-        memberCount: c.members.length,
-        otherUser: !c.isGroup ? others[0] : null,
-        members: c.members.map((mem) => mem.user),
+        id: conversation.id,
+        isGroup: conversation.isGroup,
+        name: conversation.name,
+        displayName: conversation.isGroup
+          ? conversation.name || "Group"
+          : otherUser?.name || otherUser?.email || "Unknown",
+        displayImage: conversation.isGroup ? null : otherUser?.image || null,
+        memberCount: conversation.members.length,
+        otherUser,
+        members: conversation.members.map((m) => m.user),
         lastMessage: lastMessage
           ? {
               content: lastMessage.content,
               createdAt: lastMessage.createdAt,
-              userName: lastMessage.user.name,
+              userName: lastMessage.user?.name || null,
             }
           : null,
-        updatedAt: c.updatedAt,
+        updatedAt: conversation.updatedAt,
       };
     });
 
-    return NextResponse.json(formatted);
-  } catch (err: any) {
+    // Sort by last message or updated time, newest first
+    conversations.sort((a, b) => {
+      const aTime = a.lastMessage?.createdAt || a.updatedAt;
+      const bTime = b.lastMessage?.createdAt || b.updatedAt;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
+    });
+
+    return NextResponse.json(conversations);
+  } catch (err) {
     console.error("=== GET CONVERSATIONS ERROR ===");
-    console.error("Message:", err?.message);
-    console.error("Code:", err?.code);
-    console.error("Meta:", err?.meta);
+    console.error("Message:", (err as any)?.message);
+    console.error("Code:", (err as any)?.code);
     console.error("Full:", err);
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
@@ -99,58 +102,79 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const { otherUserIds, name } = await req.json();
-    const myId = session.user.id;
 
-    const memberIds: string[] = Array.isArray(otherUserIds)
-      ? otherUserIds
-      : [otherUserIds];
-
-    if (memberIds.length === 0 || memberIds.includes(myId)) {
-      return NextResponse.json({ error: "Invalid users" }, { status: 400 });
+    if (!Array.isArray(otherUserIds) || otherUserIds.length === 0) {
+      return NextResponse.json(
+        { error: "otherUserIds required" },
+        { status: 400 }
+      );
     }
 
-    const allMembers = [myId, ...memberIds];
-    const isGroup = allMembers.length > 2;
+    const workspace = await getCurrentWorkspace(userId);
+    const isGroup = otherUserIds.length > 1;
 
+    // Check if a 1-on-1 conversation already exists between these users in this workspace
     if (!isGroup) {
       const existing = await prisma.conversation.findFirst({
         where: {
           isGroup: false,
+          workspaceId: workspace.id,
           AND: [
-            { members: { some: { userId: myId } } },
-            { members: { some: { userId: memberIds[0] } } },
+            { members: { some: { userId } } },
+            { members: { some: { userId: otherUserIds[0] } } },
           ],
         },
         include: {
           members: {
             include: {
               user: {
-                select: { id: true, name: true, email: true, image: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                  lastSeenAt: true,
+                },
               },
             },
+          },
+          messages: {
+            take: 1,
+            orderBy: { createdAt: "desc" },
           },
         },
       });
 
       if (existing) {
-        return NextResponse.json(existing);
+        return NextResponse.json(existing, { status: 200 });
       }
     }
 
+    // Create the conversation
+    const allUserIds = [userId, ...otherUserIds];
+
     const conversation = await prisma.conversation.create({
       data: {
+        name: isGroup ? name || "New group" : null,
         isGroup,
-        name: isGroup ? name || null : null,
+        workspaceId: workspace.id,
         members: {
-          create: allMembers.map((id) => ({ userId: id })),
+          create: allUserIds.map((id) => ({ userId: id })),
         },
       },
       include: {
         members: {
           include: {
             user: {
-              select: { id: true, name: true, email: true, image: true },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                lastSeenAt: true,
+              },
             },
           },
         },
@@ -158,11 +182,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(conversation, { status: 201 });
-  } catch (err: any) {
+  } catch (err) {
     console.error("=== POST CONVERSATION ERROR ===");
-    console.error("Message:", err?.message);
-    console.error("Code:", err?.code);
-    console.error("Meta:", err?.meta);
+    console.error("Message:", (err as any)?.message);
+    console.error("Code:", (err as any)?.code);
     console.error("Full:", err);
     return NextResponse.json({ error: "Failed to create" }, { status: 500 });
   }

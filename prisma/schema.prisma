@@ -40,9 +40,10 @@ model Workspace {
   image     String?
   createdAt DateTime @default(now())
 
-  members   WorkspaceMember[]
-  documents Document[]
-  tasks     Task[]
+  members       WorkspaceMember[]
+  documents     Document[]
+  tasks         Task[]
+  conversations Conversation[]
 }
 
 model WorkspaceMember {
@@ -56,6 +57,7 @@ model WorkspaceMember {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workspaceId])
+  @@index([userId])
 }
 
 enum Role {
@@ -66,15 +68,19 @@ enum Role {
 }
 
 model Conversation {
-  id        String   @id @default(cuid())
-  name      String?
-  isGroup   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String?
+  isGroup     Boolean  @default(false)
+  workspaceId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  members   ConversationMember[]
-  messages  Message[]
-  calls     Call[]
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members     ConversationMember[]
+  messages    Message[]
+  calls       Call[]
+
+  @@index([workspaceId])
 }
 
 model ConversationMember {
@@ -158,6 +164,8 @@ model Document {
 
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 model Task {
@@ -177,6 +185,8 @@ model Task {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creator     User      @relation("TaskCreator", fields: [creatorId], references: [id])
   assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@index([workspaceId])
 }
 
 enum TaskStatus {
