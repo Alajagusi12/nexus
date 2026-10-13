@@ -20,6 +20,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { IncomingCallPopup } from "@/components/incoming-call";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -111,13 +112,14 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       <aside className="hidden md:flex w-60 border-r border-border/20 flex-col flex-shrink-0">
-        <div className="p-5 border-b border-border/20">
+        <div className="p-3 border-b border-border/20 space-y-1.5">
           <Link
             href="/dashboard"
-            className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent"
+            className="block px-2 py-1 text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent"
           >
             Nexus
           </Link>
+          <WorkspaceSwitcher />
         </div>
 
         <nav className="flex-1 p-3 space-y-1">

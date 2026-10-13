@@ -1,17 +1,39 @@
+import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
+const COOKIE_NAME = "nexus_workspace_id";
+
 // Get the current workspace for a user.
-// For now: returns their first workspace.
-// Later: read from cookie/session for multi-workspace support.
+// Priority: cookie → first membership → create personal workspace
 export async function getCurrentWorkspace(userId: string) {
-  // Find their membership
+  // Try cookie first
+  let cookieWorkspaceId: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    cookieWorkspaceId = cookieStore.get(COOKIE_NAME)?.value || null;
+  } catch {
+    // cookies() only works in server components / route handlers
+  }
+
+  // If we have a cookie, verify the user is actually a member
+  if (cookieWorkspaceId) {
+    const membership = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: { userId, workspaceId: cookieWorkspaceId },
+      },
+      include: { workspace: true },
+    });
+    if (membership) return membership.workspace;
+  }
+
+  // Fall back to first membership
   let membership = await prisma.workspaceMember.findFirst({
     where: { userId },
     include: { workspace: true },
     orderBy: { joinedAt: "asc" },
   });
 
-  // If they have no workspace yet, create a personal one
+  // If they have no workspace, create a personal one
   if (!membership) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -50,6 +72,30 @@ export async function getCurrentWorkspace(userId: string) {
   return membership!.workspace;
 }
 
+// Get all workspaces the user belongs to
+export async function getAllWorkspaces(userId: string) {
+  const memberships = await prisma.workspaceMember.findMany({
+    where: { userId },
+    include: {
+      workspace: {
+        include: {
+          _count: { select: { members: true } },
+        },
+      },
+    },
+    orderBy: { joinedAt: "asc" },
+  });
+
+  return memberships.map((m) => ({
+    id: m.workspace.id,
+    name: m.workspace.name,
+    slug: m.workspace.slug,
+    image: m.workspace.image,
+    role: m.role,
+    memberCount: m.workspace._count.members,
+  }));
+}
+
 // Check if a user is a member of a workspace
 export async function isMember(userId: string, workspaceId: string) {
   const m = await prisma.workspaceMember.findUnique({
@@ -65,3 +111,6 @@ export async function isAdmin(userId: string, workspaceId: string) {
   });
   return m?.role === "OWNER" || m?.role === "ADMIN";
 }
+
+// Export cookie name for use elsewhere
+export const WORKSPACE_COOKIE_NAME = COOKIE_NAME;
