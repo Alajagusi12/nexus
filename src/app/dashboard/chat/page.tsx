@@ -972,7 +972,7 @@ export default function ChatPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="flex gap-3 group relative transition-all"
+                      className="flex gap-3 group relative transition-all select none"
                       onTouchStart={() => handleMessageTouchStart(msg)}
                       onTouchEnd={handleMessageTouchEnd}
                       onTouchMove={handleMessageTouchEnd}
