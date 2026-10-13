@@ -4,20 +4,22 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = "postgresql://postgres.ygbqalcvhlmhgkmzefrk:q2yIx1HmartFGG9L@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+  url      = "postgresql://postgres.ygbqalcvhlmhgkmzefrk:q2yIx1HmartFGG9L@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String?
-  image         String?
-  password      String?
-  bio           String?
-  theme         String   @default("dark")
-  lastSeenAt    DateTime @default(now())
-  skills        String?
-  createdAt     DateTime @default(now())
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  image             String?
+  password          String?
+  bio               String?
+  theme             String    @default("dark")
+  lastSeenAt        DateTime  @default(now())
+  skills            String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
 
   workspaces         WorkspaceMember[]
   messages           Message[]

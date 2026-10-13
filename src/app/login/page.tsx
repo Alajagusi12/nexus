@@ -59,7 +59,7 @@ export default function LoginPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex">
+    <main className="min-h-screen bg-[#0A0F1E] text-white flex">
       {/* Left panel — Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 p-12 flex-col justify-between">
         <div className="absolute top-0 -left-20 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
@@ -107,7 +107,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-slate-950">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#0A0F1E]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   Password
                 </label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className="text-xs text-blue-400 hover:text-blue-300 transition"
                 >
                   Forgot password?
