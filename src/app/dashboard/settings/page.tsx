@@ -63,8 +63,8 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Image too large. Max 2MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image too large. Max 5MB.");
       setTimeout(() => setError(""), 3000);
       return;
     }
@@ -75,28 +75,37 @@ export default function SettingsPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      setForm({ ...form, image: base64 });
+    setError("");
 
-      try {
-        const res = await fetch("/api/users/me", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64 }),
-        });
-        if (res.ok) {
-          setSavedMessage("Avatar updated!");
-          setTimeout(() => setSavedMessage(""), 3000);
-          update();
-        }
-      } catch (err) {
-        console.error(err);
-        setError("Failed to upload avatar");
+    try {
+      const { uploadFile } = await import("@/lib/storage");
+      const result = await uploadFile(file, "avatars", "user-avatars");
+
+      if (result.error) {
+        setError("Failed to upload: " + result.error);
+        setTimeout(() => setError(""), 4000);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      setForm({ ...form, image: result.url });
+
+      const res = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: result.url }),
+      });
+
+      if (res.ok) {
+        setSavedMessage("Avatar updated!");
+        setTimeout(() => setSavedMessage(""), 3000);
+        update();
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to upload avatar");
+    }
+
+    e.target.value = "";
   }
 
   async function removeAvatar() {
@@ -215,7 +224,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Avatar section */}
       <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden ring-4 ring-border/30 flex-shrink-0">
           {form.image ? (
@@ -273,7 +281,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Profile Form */}
       <motion.form
         onSubmit={handleSave}
         initial={{ opacity: 0, y: 10 }}
@@ -327,7 +334,6 @@ export default function SettingsPage() {
         </button>
       </motion.form>
 
-      {/* Notifications Section */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -390,7 +396,6 @@ export default function SettingsPage() {
         )}
       </motion.div>
 
-      {/* Skills Section */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -439,7 +444,6 @@ export default function SettingsPage() {
         </button>
       </motion.div>
 
-      {/* Password Form */}
       <motion.form
         onSubmit={handlePasswordChange}
         initial={{ opacity: 0, y: 10 }}

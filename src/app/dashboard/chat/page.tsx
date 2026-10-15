@@ -433,38 +433,41 @@ export default function ChatPage() {
     const file = e.target.files?.[0];
     if (!file || !activeId) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File too large. Max 5MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Max 10MB.");
       return;
     }
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        await fetch(`/api/conversations/${activeId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: "",
-            fileUrl: base64,
-            fileType: file.type,
-            fileName: file.name,
-          }),
-        });
-        setUploading(false);
-        toast.success("File uploaded");
-        loadConversations();
-      };
-      reader.readAsDataURL(file);
+      const { uploadFile } = await import("@/lib/storage");
+      const result = await uploadFile(file, "attachments", activeId);
+
+      if (result.error) {
+        toast.error("Upload failed: " + result.error);
+        return;
+      }
+
+      await fetch(`/api/conversations/${activeId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: "",
+          fileUrl: result.url,
+          fileType: file.type,
+          fileName: file.name,
+        }),
+      });
+
+      toast.success("File uploaded");
+      loadConversations();
     } catch (err) {
       console.error(err);
-      setUploading(false);
       toast.error("Failed to upload");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function toggleReaction(messageId: string, emoji: string) {
