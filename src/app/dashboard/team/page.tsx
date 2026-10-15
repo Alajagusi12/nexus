@@ -16,7 +16,7 @@ import {
   Zap,
   Award,
 } from "lucide-react";
-import { parseSkills, SKILL_CATEGORIES } from "@/lib/skills";
+import { parseSkills } from "@/lib/skills";
 
 type Member = {
   id: string;
@@ -65,6 +65,9 @@ export default function TeamPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,12 +107,48 @@ export default function TeamPage() {
     [members]
   );
 
-  const inviteLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/register`
-      : "";
+  async function generateInvite() {
+    setInviteLoading(true);
+    setInviteError("");
+    setInviteLink(null);
+
+    try {
+      const wsRes = await fetch("/api/workspaces", { cache: "no-store" });
+      const wsData = await wsRes.json();
+      const currentId = wsData.currentId;
+
+      if (!currentId) {
+        setInviteError("No workspace found");
+        setInviteLoading(false);
+        return;
+      }
+
+      const res = await fetch(`/api/workspaces/${currentId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "MEMBER" }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setInviteError(err.error || "Failed to create invite");
+        setInviteLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const link = `${window.location.origin}/invite/${data.token}`;
+      setInviteLink(link);
+    } catch (err) {
+      console.error(err);
+      setInviteError("Failed to create invite");
+    } finally {
+      setInviteLoading(false);
+    }
+  }
 
   async function copyInviteLink() {
+    if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -119,9 +158,15 @@ export default function TeamPage() {
     }
   }
 
+  function closeInvite() {
+    setShowInvite(false);
+    setInviteLink(null);
+    setInviteError("");
+    setCopied(false);
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8">
-      {/* Header */}
       <div className="mb-6 md:mb-8">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
@@ -130,8 +175,7 @@ export default function TeamPage() {
               Team
             </h1>
             <p className="text-muted text-sm md:text-base">
-              {members.length}{" "}
-              {members.length === 1 ? "member" : "members"}
+              {members.length} {members.length === 1 ? "member" : "members"}
               {onlineCount > 0 && (
                 <span className="ml-2 inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -151,7 +195,6 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Search + filter bar */}
       <div className="flex gap-2 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -189,7 +232,6 @@ export default function TeamPage() {
         </button>
       </div>
 
-      {/* Content */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -319,7 +361,6 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Member detail modal */}
       <AnimatePresence>
         {selected && (
           <div
@@ -409,7 +450,6 @@ export default function TeamPage() {
         )}
       </AnimatePresence>
 
-      {/* Skill filter modal */}
       <AnimatePresence>
         {showFilters && (
           <div
@@ -485,12 +525,11 @@ export default function TeamPage() {
         )}
       </AnimatePresence>
 
-      {/* Invite modal */}
       <AnimatePresence>
         {showInvite && (
           <div
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center"
-            onClick={() => setShowInvite(false)}
+            onClick={closeInvite}
           >
             <motion.div
               initial={{ y: 400, opacity: 0 }}
@@ -510,7 +549,7 @@ export default function TeamPage() {
                   Invite to workspace
                 </h3>
                 <button
-                  onClick={() => setShowInvite(false)}
+                  onClick={closeInvite}
                   className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
                 >
                   <X className="w-4 h-4" />
@@ -527,31 +566,58 @@ export default function TeamPage() {
                   They&apos;ll create an account and join you.
                 </p>
 
-                <div className="rounded-xl border border-border bg-foreground/5 p-3">
-                  <p className="text-[10px] text-muted mb-1.5 uppercase tracking-wider">
-                    Invite link
-                  </p>
-                  <p className="text-xs text-foreground/80 break-all font-mono">
-                    {inviteLink}
-                  </p>
-                </div>
+                {!inviteLink && !inviteLoading && (
+                  <button
+                    onClick={generateInvite}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition flex items-center justify-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Generate invite link
+                  </button>
+                )}
 
-                <button
-                  onClick={copyInviteLink}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition flex items-center justify-center gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy invite link
-                    </>
-                  )}
-                </button>
+                {inviteLoading && (
+                  <div className="text-center py-3 text-sm text-muted flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </div>
+                )}
+
+                {inviteError && (
+                  <div className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2.5 text-sm">
+                    {inviteError}
+                  </div>
+                )}
+
+                {inviteLink && (
+                  <>
+                    <div className="rounded-xl border border-border bg-foreground/5 p-3">
+                      <p className="text-[10px] text-muted mb-1.5 uppercase tracking-wider">
+                        Invite link — expires in 7 days
+                      </p>
+                      <p className="text-xs text-foreground/80 break-all font-mono">
+                        {inviteLink}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={copyInviteLink}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition flex items-center justify-center gap-2"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          Copy invite link
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
 
                 <p className="text-xs text-muted text-center flex items-center justify-center gap-1.5">
                   <Zap className="w-3 h-3" />
