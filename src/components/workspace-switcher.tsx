@@ -69,9 +69,10 @@ export function WorkspaceSwitcher() {
         setCurrentId(id);
         setOpen(false);
         toast.success("Workspace switched");
-        router.refresh();
-        // Reload data on current page
-        setTimeout(() => router.refresh(), 100);
+        // Full reload — the ONLY way to guarantee all data refetches
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 200);
       } else {
         toast.error("Failed to switch");
       }
