@@ -15,6 +15,8 @@ import {
   Filter,
   Zap,
   Award,
+  Crown,
+  Shield,
 } from "lucide-react";
 import { parseSkills } from "@/lib/skills";
 
@@ -25,6 +27,8 @@ type Member = {
   image: string | null;
   skills: string | null;
   lastSeenAt: string | null;
+  role: string;
+  joinedAt: string;
 };
 
 function getInitials(name: string | null, email: string) {
@@ -56,6 +60,26 @@ function isOnline(lastSeenAt: string | null) {
   return Date.now() - new Date(lastSeenAt).getTime() < 2 * 60 * 1000;
 }
 
+function RoleBadge({ role }: { role: string }) {
+  if (role === "OWNER") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+        <Crown className="w-2.5 h-2.5" />
+        Owner
+      </span>
+    );
+  }
+  if (role === "ADMIN") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-purple-500/20 text-purple-500 border border-purple-500/30">
+        <Shield className="w-2.5 h-2.5" />
+        Admin
+      </span>
+    );
+  }
+  return null;
+}
+
 export default function TeamPage() {
   const [query, setQuery] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
@@ -70,29 +94,50 @@ export default function TeamPage() {
   const [inviteError, setInviteError] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    async function loadMembers() {
       setLoading(true);
-      const url = query.trim()
-        ? `/api/users/search?q=${encodeURIComponent(query)}`
-        : `/api/users/search?q=a`;
-      fetch(url, { cache: "no-store" })
-        .then((res) => res.json())
-        .then((data) => {
-          setMembers(Array.isArray(data) ? data : []);
+      try {
+        const wsRes = await fetch("/api/workspaces", { cache: "no-store" });
+        const wsData = await wsRes.json();
+        const currentId = wsData.currentId;
+
+        if (!currentId) {
+          setMembers([]);
           setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+          return;
+        }
+
+        const res = await fetch(`/api/workspaces/${currentId}/members`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+        setMembers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadMembers();
+  }, []);
 
   const filteredMembers = useMemo(() => {
-    if (!skillFilter) return members;
-    return members.filter((m) => {
+    if (!query.trim()) return members;
+    const q = query.toLowerCase();
+    return members.filter(
+      (m) =>
+        m.name?.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
+    );
+  }, [members, query]);
+
+  const skillFilteredMembers = useMemo(() => {
+    if (!skillFilter) return filteredMembers;
+    return filteredMembers.filter((m) => {
       const skills = parseSkills(m.skills);
       return skills.includes(skillFilter);
     });
-  }, [members, skillFilter]);
+  }, [filteredMembers, skillFilter]);
 
   const allSkills = useMemo(() => {
     const skillSet = new Set<string>();
@@ -253,7 +298,7 @@ export default function TeamPage() {
             </div>
           ))}
         </div>
-      ) : filteredMembers.length === 0 ? (
+      ) : skillFilteredMembers.length === 0 ? (
         <div className="text-center py-20 px-6">
           <div className="w-16 h-16 rounded-2xl bg-foreground/5 border border-border/50 flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-muted opacity-60" />
@@ -264,7 +309,9 @@ export default function TeamPage() {
           <p className="text-sm text-muted mb-4">
             {skillFilter
               ? `Nobody has "${skillFilter}" yet. Try a different filter.`
-              : "Invite someone to your workspace to get started."}
+              : members.length === 0
+              ? "Invite someone to your workspace to get started."
+              : "Try a different search."}
           </p>
           {skillFilter ? (
             <button
@@ -273,7 +320,7 @@ export default function TeamPage() {
             >
               Clear filter
             </button>
-          ) : (
+          ) : members.length === 0 ? (
             <button
               onClick={() => setShowInvite(true)}
               className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-400 transition font-medium"
@@ -281,11 +328,11 @@ export default function TeamPage() {
               <UserPlus className="w-3.5 h-3.5" />
               Invite a member
             </button>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMembers.map((member, i) => {
+          {skillFilteredMembers.map((member, i) => {
             const skills = parseSkills(member.skills);
             const online = isOnline(member.lastSeenAt);
             return (
@@ -315,9 +362,12 @@ export default function TeamPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">
-                      {member.name || "Unnamed"}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <p className="font-semibold text-foreground truncate">
+                        {member.name || "Unnamed"}
+                      </p>
+                      <RoleBadge role={member.role} />
+                    </div>
                     <p className="text-xs text-muted truncate">
                       {member.email}
                     </p>
@@ -400,9 +450,12 @@ export default function TeamPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-xl font-bold truncate">
-                      {selected.name || "Unnamed"}
-                    </h2>
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <h2 className="text-xl font-bold truncate">
+                        {selected.name || "Unnamed"}
+                      </h2>
+                      <RoleBadge role={selected.role} />
+                    </div>
                     <p className="text-sm text-muted truncate flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5" />
                       {selected.email}
