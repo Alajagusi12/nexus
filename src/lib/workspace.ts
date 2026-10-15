@@ -114,3 +114,23 @@ export async function isAdmin(userId: string, workspaceId: string) {
 
 // Export cookie name for use elsewhere
 export const WORKSPACE_COOKIE_NAME = COOKIE_NAME;
+// Get the user's role in a workspace, or null if not a member
+export async function getRole(userId: string, workspaceId: string) {
+  const m = await prisma.workspaceMember.findUnique({
+    where: { userId_workspaceId: { userId, workspaceId } },
+    select: { role: true },
+  });
+  return m?.role || null;
+}
+
+// Can the user manage the workspace (invite, rename, kick)?
+export async function canManage(userId: string, workspaceId: string) {
+  const role = await getRole(userId, workspaceId);
+  return role === "OWNER" || role === "ADMIN";
+}
+
+// Is the user the owner?
+export async function isOwner(userId: string, workspaceId: string) {
+  const role = await getRole(userId, workspaceId);
+  return role === "OWNER";
+}
