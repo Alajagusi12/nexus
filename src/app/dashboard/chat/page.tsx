@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ThreadPanel } from "@/components/thread-panel";
+import { AIPanel } from "@/components/ai-panel";
 import {
   Send,
   MessageSquare,
@@ -27,6 +28,7 @@ import {
   Pin,
   CheckSquare,
   Calendar,
+  Sparkles,
 } from "lucide-react";
 
 type OtherUser = {
@@ -124,6 +126,7 @@ export default function ChatPage() {
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [showPinnedList, setShowPinnedList] = useState(false);
   const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   const [taskFromMessage, setTaskFromMessage] = useState<Message | null>(null);
   const [taskForm, setTaskForm] = useState({
@@ -171,6 +174,7 @@ export default function ChatPage() {
       sessionStorage.setItem("lastActiveConversation", activeId);
       setOpenThread(null);
       setShowPinnedList(false);
+      setShowAIPanel(false);
       loadPins();
     } else {
       setPinnedMessages([]);
@@ -511,19 +515,6 @@ export default function ChatPage() {
       }
     } catch (err) {
       console.error(err);
-      fetch(`/api/conversations/${activeId}/messages`, { cache: "no-store" })
-        .then((r) => r.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            setMessages(
-              data.map((m: Message) => ({
-                ...m,
-                replyCount: m._count?.replies || 0,
-              }))
-            );
-          }
-        })
-        .catch(() => {});
     }
   }
 
@@ -547,10 +538,6 @@ export default function ChatPage() {
       if (res.ok) {
         const updated = await res.json();
         if (updated.pinnedAt) {
-          setPinnedMessages((prev) => {
-            if (prev.some((p) => p.id === updated.id)) return prev;
-            return [updated, ...prev];
-          });
           toast.success("Message pinned");
         } else {
           setPinnedMessages((prev) => prev.filter((p) => p.id !== updated.id));
@@ -841,7 +828,7 @@ export default function ChatPage() {
             activeId ? "flex" : "hidden md:flex"
           } flex-1 flex flex-col min-w-0`}
         >
-          <header className="border-b border-border px-3 md:px-6 py-3 md:py-4 flex items-center gap-2 md:gap-3">
+          <header className="border-b border-border px-3 md:px-6 py-3 md:py-4 flex items-center gap-1.5 md:gap-2">
             <button
               onClick={() => setActiveId(null)}
               className="md:hidden p-2 -ml-2 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
@@ -903,6 +890,20 @@ export default function ChatPage() {
             </div>
 
             <button
+              onClick={() => setShowAIPanel(!showAIPanel)}
+              className={`p-2.5 rounded-lg transition flex-shrink-0 ${
+                showAIPanel ? "bg-blue-500/10" : "hover:bg-foreground/10"
+              }`}
+              title="AI Assistant"
+            >
+              <Sparkles
+                className={`w-5 h-5 ${
+                  showAIPanel ? "text-blue-500" : "text-muted"
+                }`}
+              />
+            </button>
+
+            <button
               onClick={() => setShowSearch(true)}
               className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
               title="Search messages"
@@ -914,14 +915,14 @@ export default function ChatPage() {
               <>
                 <button
                   onClick={() => startCall("voice")}
-                  className="p-2.5 rounded-lg hover:bg-foreground/10 transition"
+                  className="hidden sm:flex p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
                   title="Voice call"
                 >
                   <Phone className="w-5 h-5 text-muted" />
                 </button>
                 <button
                   onClick={() => startCall("video")}
-                  className="p-2.5 rounded-lg hover:bg-foreground/10 transition"
+                  className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
                   title="Video call"
                 >
                   <Video className="w-5 h-5 text-muted" />
@@ -975,7 +976,7 @@ export default function ChatPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="flex gap-3 group relative transition-all select none"
+                      className="flex gap-3 group relative transition-all"
                       onTouchStart={() => handleMessageTouchStart(msg)}
                       onTouchEnd={handleMessageTouchEnd}
                       onTouchMove={handleMessageTouchEnd}
@@ -1337,6 +1338,14 @@ export default function ChatPage() {
         </div>
       )}
 
+      {showAIPanel && activeId && (
+        <AIPanel
+          conversationId={activeId}
+          conversationName={active?.displayName || "Conversation"}
+          onClose={() => setShowAIPanel(false)}
+        />
+      )}
+
       {openThread && activeId && (
         <ThreadPanel
           conversationId={activeId}
@@ -1345,7 +1354,7 @@ export default function ChatPage() {
           onReplyCountChange={handleReplyCountChange}
         />
       )}
-      {/* Pinned messages list */}
+
       {showPinnedList && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1412,7 +1421,6 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Mobile action sheet (long-press) */}
       <AnimatePresence>
         {actionSheetMsg && (
           <div
@@ -1425,7 +1433,7 @@ export default function ChatPage() {
               exit={{ y: 300, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col pb-4 md:pb-0"
+              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden pb-4 md:pb-0"
             >
               <div className="md:hidden flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-muted/40" />
@@ -1466,7 +1474,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="p-2 overflow-y-auto">
+              <div className="p-2">
                 <button
                   onClick={() => openTaskFromMessage(actionSheetMsg)}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
@@ -1541,7 +1549,6 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Task-from-message modal */}
       <AnimatePresence>
         {taskFromMessage && (
           <div
@@ -1688,7 +1695,6 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* New DM modal */}
       {showNewDm && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1844,7 +1850,6 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Message search modal */}
       {showSearch && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
