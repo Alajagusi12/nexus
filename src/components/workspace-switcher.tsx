@@ -10,6 +10,7 @@ import {
   Building2,
   Loader2,
   X,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,7 +70,6 @@ export function WorkspaceSwitcher() {
         setCurrentId(id);
         setOpen(false);
         toast.success("Workspace switched");
-        // Full reload — the ONLY way to guarantee all data refetches
         setTimeout(() => {
           window.location.href = "/dashboard";
         }, 200);
@@ -103,7 +103,6 @@ export function WorkspaceSwitcher() {
       setOpen(false);
       toast.success("Workspace created");
 
-      // Switch to the new one
       await switchTo(created.id);
       await load();
     } catch (err) {
@@ -206,13 +205,25 @@ export function WorkspaceSwitcher() {
                     Create workspace
                   </span>
                 </button>
+
+                <a
+                  href="/dashboard/workspace"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-foreground/5 transition text-left"
+                >
+                  <div className="w-7 h-7 rounded-md bg-foreground/5 border border-border flex items-center justify-center flex-shrink-0">
+                    <SettingsIcon className="w-3.5 h-3.5 text-muted" />
+                  </div>
+                  <span className="text-sm font-medium">
+                    Workspace settings
+                  </span>
+                </a>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Create workspace modal */}
       <AnimatePresence>
         {showCreate && (
           <div
