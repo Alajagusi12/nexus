@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ThreadPanel } from "@/components/thread-panel";
 import { AIPanel } from "@/components/ai-panel";
+import { GroupCall } from "@/components/group-call";
 import {
   Send,
   MessageSquare,
@@ -127,6 +128,7 @@ export default function ChatPage() {
   const [showPinnedList, setShowPinnedList] = useState(false);
   const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showGroupCall, setShowGroupCall] = useState(false);
 
   const [taskFromMessage, setTaskFromMessage] = useState<Message | null>(null);
   const [taskForm, setTaskForm] = useState({
@@ -175,6 +177,7 @@ export default function ChatPage() {
       setOpenThread(null);
       setShowPinnedList(false);
       setShowAIPanel(false);
+      setShowGroupCall(false);
       loadPins();
     } else {
       setPinnedMessages([]);
@@ -385,10 +388,14 @@ export default function ChatPage() {
 
   async function startCall(callType: "video" | "voice") {
     if (!activeId || !active) return;
+
+    // For group conversations, use LiveKit
     if (active.isGroup) {
-      toast.error("Group calls coming soon");
+      setShowGroupCall(true);
       return;
     }
+
+    // For 1-on-1, use existing WebRTC flow
     try {
       const res = await fetch("/api/calls", {
         method: "POST",
@@ -911,24 +918,20 @@ export default function ChatPage() {
               <Search className="w-5 h-5 text-muted" />
             </button>
 
-            {!active.isGroup && (
-              <>
-                <button
-                  onClick={() => startCall("voice")}
-                  className="hidden sm:flex p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
-                  title="Voice call"
-                >
-                  <Phone className="w-5 h-5 text-muted" />
-                </button>
-                <button
-                  onClick={() => startCall("video")}
-                  className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
-                  title="Video call"
-                >
-                  <Video className="w-5 h-5 text-muted" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => startCall("voice")}
+              className="hidden sm:flex p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              title="Voice call"
+            >
+              <Phone className="w-5 h-5 text-muted" />
+            </button>
+            <button
+              onClick={() => startCall("video")}
+              className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              title="Video call"
+            >
+              <Video className="w-5 h-5 text-muted" />
+            </button>
           </header>
 
           {pinnedMessages.length > 0 && (
@@ -1338,6 +1341,14 @@ export default function ChatPage() {
         </div>
       )}
 
+      {showGroupCall && activeId && active && (
+        <GroupCall
+          conversationId={activeId}
+          conversationName={active.displayName}
+          onClose={() => setShowGroupCall(false)}
+        />
+      )}
+
       {showAIPanel && activeId && (
         <AIPanel
           conversationId={activeId}
@@ -1354,7 +1365,6 @@ export default function ChatPage() {
           onReplyCountChange={handleReplyCountChange}
         />
       )}
-
       {showPinnedList && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
