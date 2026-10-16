@@ -175,3 +175,23 @@ select.bg-white\/5 { background-color: rgb(var(--card)); }
 /* --- RING COLORS (presence dots) --- */
 .ring-slate-950,
 .ring-slate-900 { --tw-ring-color: rgb(var(--background)); }
+/* Prevent long-press copy/share menu on mobile */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* But allow selection inside inputs and textareas */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Allow selection in the message editor */
+.prose,
+.tiptap {
+  -webkit-user-select: text;
+  user-select: text;
+}
