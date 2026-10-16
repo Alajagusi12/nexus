@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getRole } from "@/lib/workspace";
+import { getRole, logAction } from "@/lib/workspace";
 
 // PATCH — rename workspace
 export async function PATCH(
@@ -32,6 +32,15 @@ export async function PATCH(
     const workspace = await prisma.workspace.update({
       where: { id },
       data: { name: name.trim() },
+    });
+
+    await logAction({
+      workspaceId: id,
+      userId: session.user.id,
+      action: "workspace.renamed",
+      targetType: "workspace",
+      targetId: id,
+      metadata: { newName: name.trim() },
     });
 
     return NextResponse.json(workspace);

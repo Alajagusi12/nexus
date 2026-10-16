@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getRole } from "@/lib/workspace";
+import { getRole, logAction } from "@/lib/workspace";
 
 export async function POST(
   req: Request,
@@ -31,7 +31,6 @@ export async function POST(
       );
     }
 
-    // Verify new owner is a member
     const target = await prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: { userId: newOwnerId, workspaceId },
@@ -45,7 +44,6 @@ export async function POST(
       );
     }
 
-    // Swap roles
     await prisma.$transaction([
       prisma.workspaceMember.update({
         where: { id: target.id },
@@ -61,6 +59,15 @@ export async function POST(
         data: { role: "ADMIN" },
       }),
     ]);
+
+    await logAction({
+      workspaceId,
+      userId: session.user.id,
+      action: "workspace.ownership_transferred",
+      targetType: "user",
+      targetId: newOwnerId,
+      metadata: {},
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

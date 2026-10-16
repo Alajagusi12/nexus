@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getRole } from "@/lib/workspace";
+import { getRole, logAction } from "@/lib/workspace";
 
 // PATCH — change member role
 export async function PATCH(
@@ -36,7 +36,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    // Can't change owner's role
     if (target.role === "OWNER") {
       return NextResponse.json(
         { error: "Can't change the owner's role" },
@@ -44,7 +43,6 @@ export async function PATCH(
       );
     }
 
-    // Admins can't promote to admin (only owners can)
     if (myRole === "ADMIN" && newRole === "ADMIN") {
       return NextResponse.json(
         { error: "Only owners can promote to admin" },
@@ -52,7 +50,6 @@ export async function PATCH(
       );
     }
 
-    // Admins can't demote other admins
     if (myRole === "ADMIN" && target.role === "ADMIN") {
       return NextResponse.json(
         { error: "Only owners can manage admins" },
@@ -75,6 +72,15 @@ export async function PATCH(
           },
         },
       },
+    });
+
+    await logAction({
+      workspaceId,
+      userId: session.user.id,
+      action: "member.role_changed",
+      targetType: "user",
+      targetId: memberId,
+      metadata: { oldRole: target.role, newRole },
     });
 
     return NextResponse.json({
@@ -108,7 +114,6 @@ export async function DELETE(
 
     const myRole = await getRole(session.user.id, workspaceId);
 
-    // Allow leaving your own workspace OR admins/owners removing others
     const isSelf = session.user.id === memberId;
     const isPrivileged = myRole === "OWNER" || myRole === "ADMIN";
 
@@ -130,7 +135,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    // Can't remove the owner
     if (target.role === "OWNER") {
       return NextResponse.json(
         { error: "The owner can't be removed" },
@@ -138,7 +142,6 @@ export async function DELETE(
       );
     }
 
-    // Admins can't remove other admins
     if (myRole === "ADMIN" && target.role === "ADMIN" && !isSelf) {
       return NextResponse.json(
         { error: "Only owners can remove admins" },
@@ -148,6 +151,15 @@ export async function DELETE(
 
     await prisma.workspaceMember.delete({
       where: { id: target.id },
+    });
+
+    await logAction({
+      workspaceId,
+      userId: session.user.id,
+      action: isSelf ? "member.left" : "member.removed",
+      targetType: "user",
+      targetId: memberId,
+      metadata: {},
     });
 
     return NextResponse.json({ success: true });
