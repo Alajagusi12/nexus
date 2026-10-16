@@ -389,13 +389,11 @@ export default function ChatPage() {
   async function startCall(callType: "video" | "voice") {
     if (!activeId || !active) return;
 
-    // For group conversations, use LiveKit
     if (active.isGroup) {
       setShowGroupCall(true);
       return;
     }
 
-    // For 1-on-1, use existing WebRTC flow
     try {
       const res = await fetch("/api/calls", {
         method: "POST",
@@ -739,8 +737,8 @@ export default function ChatPage() {
     <div className="flex h-full relative overflow-hidden">
       <aside
         className={`${
-          activeId ? "hidden md:flex" : "flex"
-        } w-full md:w-72 md:flex border-r border-border flex-col flex-shrink-0 absolute md:relative inset-0 md:inset-auto z-10 bg-background`}
+          activeId ? "hidden lg:flex" : "flex"
+        } w-full lg:w-72 lg:flex border-r border-border flex-col flex-shrink-0 absolute lg:relative inset-0 lg:inset-auto z-10 bg-background`}
       >
         <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
           <h2 className="font-semibold flex items-center gap-2">
@@ -832,13 +830,13 @@ export default function ChatPage() {
       {active ? (
         <div
           className={`${
-            activeId ? "flex" : "hidden md:flex"
+            activeId ? "flex" : "hidden lg:flex"
           } flex-1 flex flex-col min-w-0`}
         >
-          <header className="border-b border-border px-3 md:px-6 py-3 md:py-4 flex items-center gap-1.5 md:gap-2">
+          <header className="border-b border-border px-3 md:px-6 py-3 md:py-4 flex items-center gap-1.5 md:gap-2 overflow-x-auto">
             <button
               onClick={() => setActiveId(null)}
-              className="md:hidden p-2 -ml-2 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
               aria-label="Back to chats"
             >
               <svg
@@ -996,7 +994,7 @@ export default function ChatPage() {
                           msg.user?.name?.[0]?.toUpperCase() || "?"
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="font-semibold text-sm">
                             {msg.user?.name || "User"}
@@ -1082,7 +1080,7 @@ export default function ChatPage() {
                           </div>
                         ) : (
                           msg.content && (
-                            <p className="text-foreground/80 text-sm mt-0.5 break-words">
+                            <p className="text-foreground/80 text-sm mt-0.5 break-words min-w-0">
                               {msg.content}
                               {msg.editedAt && (
                                 <span className="text-[10px] text-muted ml-2">
@@ -1131,7 +1129,7 @@ export default function ChatPage() {
                         )}
                       </div>
 
-                      <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
+                      <div className="hidden lg:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
                         <button
                           onClick={() => openTaskFromMessage(msg)}
                           className="p-1.5 rounded-lg hover:bg-green-500/20 transition"
@@ -1196,11 +1194,11 @@ export default function ChatPage() {
                       {emojiPickerFor === msg.id && (
                         <>
                           <div
-                            className="fixed inset-0 z-40 md:hidden"
+                            className="fixed inset-0 z-40 lg:hidden"
                             onClick={() => setEmojiPickerFor(null)}
                           />
-                          <div className="absolute right-0 md:right-12 bottom-full md:bottom-auto md:top-0 mb-2 md:mb-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px] md:w-auto">
-                            <div className="grid grid-cols-8 md:flex md:flex-wrap gap-1 max-h-48 md:max-h-none overflow-y-auto">
+                          <div className="absolute right-0 lg:right-12 bottom-full lg:bottom-auto lg:top-0 mb-2 lg:mb-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px] lg:w-auto">
+                            <div className="grid grid-cols-8 lg:flex lg:flex-wrap gap-1 max-h-48 lg:max-h-none overflow-y-auto">
                               {FULL_EMOJIS.map((emoji) => (
                                 <button
                                   key={emoji}
@@ -1270,7 +1268,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2.5 rounded-xl hover:bg-foreground/10 transition"
+                className="p-2.5 rounded-xl hover:bg-foreground/10 transition flex-shrink-0"
                 title="Attach file"
               >
                 {uploading ? (
@@ -1316,12 +1314,12 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder={`Message ${active.displayName}`}
-                className="flex-1 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                className="flex-1 min-w-0 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || sending}
-                className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2"
+                className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 md:px-5 py-3 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
               >
                 {sending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -1365,6 +1363,7 @@ export default function ChatPage() {
           onReplyCountChange={handleReplyCountChange}
         />
       )}
+
       {showPinnedList && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1434,7 +1433,7 @@ export default function ChatPage() {
       <AnimatePresence>
         {actionSheetMsg && (
           <div
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end lg:items-center justify-center"
             onClick={() => setActionSheetMsg(null)}
           >
             <motion.div
@@ -1443,9 +1442,9 @@ export default function ChatPage() {
               exit={{ y: 300, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full md:max-w-sm bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden pb-4 md:pb-0"
+              className="w-full lg:max-w-sm bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl overflow-hidden pb-4 lg:pb-0"
             >
-              <div className="md:hidden flex justify-center pt-3 pb-1">
+              <div className="lg:hidden flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-muted/40" />
               </div>
 
@@ -1546,7 +1545,7 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <div className="px-3 pt-2 md:hidden">
+              <div className="px-3 pt-2 lg:hidden">
                 <button
                   onClick={() => setActionSheetMsg(null)}
                   className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition text-sm font-medium"
@@ -1562,7 +1561,7 @@ export default function ChatPage() {
       <AnimatePresence>
         {taskFromMessage && (
           <div
-            className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center"
+            className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-end lg:items-center justify-center"
             onClick={() => !creatingTask && setTaskFromMessage(null)}
           >
             <motion.div
@@ -1571,9 +1570,9 @@ export default function ChatPage() {
               exit={{ y: 400, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full md:max-w-lg bg-card border-t md:border border-border rounded-t-3xl md:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
+              className="w-full lg:max-w-lg bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
             >
-              <div className="md:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
                 <div className="w-10 h-1 rounded-full bg-muted/40" />
               </div>
 
@@ -1677,7 +1676,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-border flex-shrink-0 flex gap-2 pb-6 md:pb-4">
+              <div className="p-4 border-t border-border flex-shrink-0 flex gap-2 pb-6 lg:pb-4">
                 <button
                   onClick={() => setTaskFromMessage(null)}
                   disabled={creatingTask}
