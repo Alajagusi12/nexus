@@ -32,6 +32,7 @@ model User {
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
   invitesCreated     WorkspaceInvite[]
+  auditLogs          AuditLog[]
 }
 
 model Workspace {
@@ -46,6 +47,7 @@ model Workspace {
   tasks         Task[]
   conversations Conversation[]
   invites       WorkspaceInvite[]
+  auditLogs     AuditLog[]
 }
 
 model WorkspaceMember {
@@ -78,6 +80,23 @@ model WorkspaceInvite {
 
   @@index([token])
   @@index([workspaceId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([userId])
 }
 
 enum Role {

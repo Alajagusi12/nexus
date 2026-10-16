@@ -134,3 +134,28 @@ export async function isOwner(userId: string, workspaceId: string) {
   const role = await getRole(userId, workspaceId);
   return role === "OWNER";
 }
+// Log an audit event
+export async function logAction(params: {
+  workspaceId: string;
+  userId: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        workspaceId: params.workspaceId,
+        userId: params.userId,
+        action: params.action,
+        targetType: params.targetType || null,
+        targetId: params.targetId || null,
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+      },
+    });
+  } catch (err) {
+    // Don't throw — audit logging should never break the main action
+    console.error("Audit log error:", err);
+  }
+}
