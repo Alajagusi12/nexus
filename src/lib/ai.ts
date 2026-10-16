@@ -1,6 +1,6 @@
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generatestContent";
-
+ const GEMINI_API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+  
 type GeminiResponse = {
   candidates?: Array<{
     content?: {
