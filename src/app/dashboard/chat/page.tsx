@@ -777,12 +777,12 @@ export default function ChatPage() {
                   onClick={() => setActiveId(c.id)}
                   className={`w-full text-left p-3 border-b border-border/40 transition flex items-center gap-3 ${
                     activeId === c.id
-                      ? "bg-blue-500/10"
+                      ? "bg-emerald-500/10"
                       : "hover:bg-foreground/5"
                   }`}
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
                       {c.isGroup ? (
                         <Users className="w-4 h-4" />
                       ) : c.displayImage ? (
@@ -855,7 +855,7 @@ export default function ChatPage() {
             </button>
 
             <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
                 {active.isGroup ? (
                   <Users className="w-4 h-4" />
                 ) : active.displayImage ? (
@@ -897,13 +897,13 @@ export default function ChatPage() {
             <button
               onClick={() => setShowAIPanel(!showAIPanel)}
               className={`p-2.5 rounded-lg transition flex-shrink-0 ${
-                showAIPanel ? "bg-blue-500/10" : "hover:bg-foreground/10"
+                showAIPanel ? "bg-emerald-500/10" : "hover:bg-foreground/10"
               }`}
               title="AI Assistant"
             >
               <Sparkles
                 className={`w-5 h-5 ${
-                  showAIPanel ? "text-blue-500" : "text-muted"
+                  showAIPanel ? "text-emerald-500" : "text-muted"
                 }`}
               />
             </button>
@@ -955,7 +955,7 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 space-y-4">
             {loadingMessages ? (
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
               </div>
             ) : messages.length === 0 ? (
               <div className="text-center py-12 text-muted">
@@ -983,7 +983,7 @@ export default function ChatPage() {
                       onTouchMove={handleMessageTouchEnd}
                       onClick={handleMessageClick}
                     >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-semibold text-sm flex-shrink-0 overflow-hidden text-white">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-semibold text-sm flex-shrink-0 overflow-hidden text-white">
                         {msg.user?.image ? (
                           <img
                             src={msg.user.image}
@@ -999,7 +999,7 @@ export default function ChatPage() {
                           <span className="font-semibold text-sm">
                             {msg.user?.name || "User"}
                             {isMe && (
-                              <span className="text-xs text-blue-500 ml-2">
+                              <span className="text-xs text-emerald-500 ml-2">
                                 (you)
                               </span>
                             )}
@@ -1013,7 +1013,7 @@ export default function ChatPage() {
                           {isMe && (
                             <span className="ml-1">
                               {msg.readAt ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
+                                <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
                               ) : (
                                 <Check className="w-3.5 h-3.5 text-muted" />
                               )}
@@ -1037,8 +1037,8 @@ export default function ChatPage() {
                             download={msg.fileName || "file"}
                             className="mt-2 inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-foreground/5 hover:bg-foreground/10 transition max-w-sm"
                           >
-                            <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                              <FileText className="w-4 h-4 text-blue-500" />
+                            <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                              <FileText className="w-4 h-4 text-emerald-500" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">
@@ -1061,12 +1061,12 @@ export default function ChatPage() {
                               }
                               rows={2}
                               autoFocus
-                              className="w-full rounded-xl border border-blue-500/50 bg-foreground/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+                              className="w-full rounded-xl border border-emerald-500/50 bg-foreground/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 transition resize-none"
                             />
                             <div className="flex gap-2">
                               <button
                                 onClick={saveEdit}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition"
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition"
                               >
                                 Save
                               </button>
@@ -1106,7 +1106,7 @@ export default function ChatPage() {
                                   }
                                   className={`px-2 py-0.5 rounded-full border text-xs transition ${
                                     mine
-                                      ? "bg-blue-500/20 border-blue-500/40 text-blue-500 dark:text-blue-300"
+                                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-500 dark:text-emerald-300"
                                       : "bg-foreground/5 border-border hover:bg-foreground/10"
                                   }`}
                                 >
@@ -1120,7 +1120,7 @@ export default function ChatPage() {
                         {replyCount > 0 && (
                           <button
                             onClick={() => setOpenThread(msg)}
-                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-500 hover:text-blue-400 transition"
+                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 hover:text-emerald-400 transition"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             {replyCount}{" "}
@@ -1129,7 +1129,7 @@ export default function ChatPage() {
                         )}
                       </div>
 
-                      <div className="hidden lg:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
+                      <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
                         <button
                           onClick={() => openTaskFromMessage(msg)}
                           className="p-1.5 rounded-lg hover:bg-green-500/20 transition"
@@ -1174,10 +1174,10 @@ export default function ChatPage() {
                         {isMe && msg.content && (
                           <button
                             onClick={() => startEditing(msg)}
-                            className="p-1.5 rounded-lg hover:bg-blue-500/20 transition"
+                            className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition"
                             title="Edit"
                           >
-                            <Pencil className="w-4 h-4 text-blue-500" />
+                            <Pencil className="w-4 h-4 text-emerald-500" />
                           </button>
                         )}
                         {isMe && (
@@ -1194,11 +1194,11 @@ export default function ChatPage() {
                       {emojiPickerFor === msg.id && (
                         <>
                           <div
-                            className="fixed inset-0 z-40 lg:hidden"
+                            className="fixed inset-0 z-40 md:hidden"
                             onClick={() => setEmojiPickerFor(null)}
                           />
-                          <div className="absolute right-0 lg:right-12 bottom-full lg:bottom-auto lg:top-0 mb-2 lg:mb-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px] lg:w-auto">
-                            <div className="grid grid-cols-8 lg:flex lg:flex-wrap gap-1 max-h-48 lg:max-h-none overflow-y-auto">
+                          <div className="absolute right-0 md:right-12 bottom-full md:bottom-auto md:top-0 mb-2 md:mb-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px] md:w-auto">
+                            <div className="grid grid-cols-8 md:flex md:flex-wrap gap-1 max-h-48 md:max-h-none overflow-y-auto">
                               {FULL_EMOJIS.map((emoji) => (
                                 <button
                                   key={emoji}
@@ -1314,12 +1314,12 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder={`Message ${active.displayName}`}
-                className="flex-1 min-w-0 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                className="flex-1 min-w-0 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || sending}
-                className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 md:px-5 py-3 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
+                className="rounded-xl bg-primary text-primary-foreground px-4 md:px-5 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
               >
                 {sending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -1527,7 +1527,7 @@ export default function ChatPage() {
                       onClick={() => startEditing(actionSheetMsg)}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
                     >
-                      <Pencil className="w-5 h-5 text-blue-500" />
+                      <Pencil className="w-5 h-5 text-emerald-500" />
                       <span className="text-sm font-medium">Edit message</span>
                     </button>
                   )}
@@ -1746,7 +1746,7 @@ export default function ChatPage() {
                 {selectedUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-xs"
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-xs"
                   >
                     <span className="truncate max-w-[100px]">
                       {u.name || u.email}
@@ -1766,7 +1766,7 @@ export default function ChatPage() {
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="Group name (optional)"
-                  className="w-full rounded-lg border border-border bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="w-full rounded-lg border border-border bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 />
               </div>
             )}
@@ -1780,7 +1780,7 @@ export default function ChatPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name or email..."
                   autoFocus
-                  className="w-full rounded-xl border border-border bg-foreground/5 pl-10 pr-4 py-2.5 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="w-full rounded-xl border border-border bg-foreground/5 pl-10 pr-4 py-2.5 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 />
               </div>
             </div>
@@ -1808,10 +1808,10 @@ export default function ChatPage() {
                         toggleUser(user);
                       }}
                       className={`w-full text-left p-3 hover:bg-foreground/5 transition flex items-center gap-3 border-b border-border/40 cursor-pointer select-none ${
-                        selected ? "bg-blue-500/10" : ""
+                        selected ? "bg-emerald-500/10" : ""
                       }`}
                     >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold flex-shrink-0 overflow-hidden text-white pointer-events-none">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold flex-shrink-0 overflow-hidden text-white pointer-events-none">
                         {user.image ? (
                           <img
                             src={user.image}
@@ -1831,7 +1831,7 @@ export default function ChatPage() {
                         </p>
                       </div>
                       {selected && (
-                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
                           <Check className="w-3 h-3 text-white" />
                         </div>
                       )}
@@ -1845,7 +1845,7 @@ export default function ChatPage() {
               <div className="p-4 border-t border-border">
                 <button
                   onClick={startConversation}
-                  className="w-full rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 py-3 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition"
+                  className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-semibold hover:opacity-90 transition"
                 >
                   {selectedUsers.length > 1
                     ? `Create group with ${selectedUsers.length} people`
@@ -1923,13 +1923,13 @@ export default function ChatPage() {
                         });
                         el.classList.add(
                           "ring-2",
-                          "ring-blue-500",
+                          "ring-emerald-500",
                           "rounded-lg"
                         );
                         setTimeout(() => {
                           el.classList.remove(
                             "ring-2",
-                            "ring-blue-500",
+                            "ring-emerald-500",
                             "rounded-lg"
                           );
                         }, 2000);
@@ -1941,7 +1941,7 @@ export default function ChatPage() {
                     className="w-full text-left p-3 hover:bg-foreground/5 transition border-b border-border/40 cursor-pointer select-none"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-semibold flex-shrink-0 text-white pointer-events-none">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[10px] font-semibold flex-shrink-0 text-white pointer-events-none">
                         {msg.user?.name?.[0]?.toUpperCase() || "?"}
                       </div>
                       <span className="text-xs font-medium truncate pointer-events-none">

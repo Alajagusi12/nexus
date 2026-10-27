@@ -11,10 +11,10 @@
   --muted: 100 116 139;
   --muted-bg: 244 244 245;
   
-  /* CHANGE THESE THREE TO CHANGE THE BRAND COLOR */
-  --accent: 59 130 246;
-  --primary: 59 130 246;
-  --ring: 59 130 246;
+  /* EMERALD GREEN THEME */
+  --accent: 16 185 129;
+  --primary: 16 185 129;
+  --ring: 16 185 129;
 
   --accent-foreground: 255 255 255;
   --primary-foreground: 255 255 255;
@@ -25,19 +25,18 @@
 }
 
 .dark {
-  /* Optimized Dark Mode Palette (Deep Slate) */
   --background: 15 23 42;       
   --foreground: 248 250 252;    
   --card: 30 41 59;             
   --card-foreground: 248 250 252;
   --border: 51 65 85;           
   --muted: 148 163 184;         
-  --muted-bg: 51 65 85;         /* FIXED: Was 15 23 42, now slate-700 so hover states show up */
+  --muted-bg: 51 65 85;
   
-  /* CHANGE THESE THREE TO CHANGE THE BRAND COLOR */
-  --accent: 59 130 246;
-  --primary: 59 130 246;
-  --ring: 59 130 246;
+  /* EMERALD GREEN THEME */
+  --accent: 16 185 129;
+  --primary: 16 185 129;
+  --ring: 16 185 129;
 
   --accent-foreground: 255 255 255;
   --primary-foreground: 255 255 255;
@@ -78,136 +77,98 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* === Input backgrounds === */
-input,
-textarea,
-select {
+input, textarea, select {
   background-color: rgb(var(--card));
   color: rgb(var(--foreground));
 }
 
-.dark input,
-.dark textarea,
-.dark select {
+.dark input, .dark textarea, .dark select {
   background-color: rgb(var(--background)); 
 }
 
-input::placeholder,
-textarea::placeholder {
+input::placeholder, textarea::placeholder {
   color: rgb(var(--muted));
   opacity: 0.7;
 }
 
-/* === Scrollbar === */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: rgb(var(--muted) / 0.3);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--muted) / 0.5);
   background-clip: padding-box;
 }
 
-/* === Selection === */
 ::selection {
   background: rgb(var(--accent) / 0.3);
   color: rgb(var(--foreground));
 }
 
 /* ============================================ */
-/* === Theme override layer (auto-fix legacy) === */
+/* === Theme override layer === */
 /* ============================================ */
 
-/* --- BACKGROUNDS --- */
 .bg-slate-950 { background-color: rgb(var(--background)) !important; }
 .bg-slate-900 { background-color: rgb(var(--card)) !important; }
 .bg-slate-800 { background-color: rgb(var(--card)) !important; }
 .bg-slate-700 { background-color: rgb(var(--muted-bg)) !important; }
 
-/* --- TEXT COLORS --- */
 .text-white { color: rgb(var(--foreground)); }
-.text-slate-100,
-.text-slate-200 { color: rgb(var(--foreground)); }
+.text-slate-100, .text-slate-200 { color: rgb(var(--foreground)); }
 .text-slate-300 { color: rgb(var(--foreground) / 0.85); }
-.text-slate-400,
-.text-slate-500,
-.text-slate-600 { color: rgb(var(--muted)); }
+.text-slate-400, .text-slate-500, .text-slate-600 { color: rgb(var(--muted)); }
 
-/* Keep text-white inside primary/destructive buttons */
+/* Keep white text on new primary buttons */
 .bg-blue-600 .text-white,
 .bg-blue-500 .text-white,
 .bg-red-500 .text-white,
+.bg-emerald-600 .text-white,
 [class*="from-blue-"] .text-white,
 [class*="to-indigo-"] .text-white,
+[class*="from-emerald"] .text-white,
 [class*="from-red-"] .text-white { color: white !important; }
 
-/* --- BORDERS --- */
 .border-white\/5 { border-color: rgb(var(--border) / 0.35); }
 .border-white\/10 { border-color: rgb(var(--border) / 0.5); }
 .border-white\/20 { border-color: rgb(var(--border) / 0.7); }
 
-/* --- SURFACES --- */
 .bg-white\/5 { background-color: rgb(var(--foreground) / 0.04); }
 .bg-white\/10 { background-color: rgb(var(--foreground) / 0.07); }
 
-/* Inputs and textareas override bg-white/5 with a real card bg */
-input.bg-white\/5,
-textarea.bg-white\/5,
-select.bg-white\/5 { background-color: rgb(var(--card)); }
+input.bg-white\/5, textarea.bg-white\/5, select.bg-white\/5 { background-color: rgb(var(--card)); }
 
-/* --- HOVER STATES --- */
 .hover\:bg-white\/5:hover { background-color: rgb(var(--foreground) / 0.06); }
 .hover\:bg-white\/10:hover { background-color: rgb(var(--foreground) / 0.1); }
 .hover\:text-white:hover { color: rgb(var(--foreground)); }
 .hover\:border-white\/20:hover { border-color: rgb(var(--border) / 0.8); }
 
-/* --- MODALS --- */
-.bg-black\/60,
-.bg-black\/70 { background-color: rgb(0 0 0 / 0.5); }
-.dark .bg-black\/60,
-.dark .bg-black\/70 { background-color: rgb(0 0 0 / 0.7); }
+.bg-black\/60, .bg-black\/70 { background-color: rgb(0 0 0 / 0.5); }
+.dark .bg-black\/60, .dark .bg-black\/70 { background-color: rgb(0 0 0 / 0.7); }
 
-/* --- RING COLORS (presence dots) --- */
-.ring-slate-950,
-.ring-slate-900 { --tw-ring-color: rgb(var(--background)); }
+.ring-slate-950, .ring-slate-900 { --tw-ring-color: rgb(var(--background)); }
 
-/* --- DARK MODE CARD ELEVATION --- */
-.dark .shadow-sm,
-.dark .shadow,
-.dark .shadow-md,
-.dark .shadow-lg,
-.dark .shadow-xl {
+.dark .shadow-sm, .dark .shadow, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
   box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05), 
               0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
 }
 
-/* Prevent long-press copy/share menu on mobile */
 * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-input,
-textarea {
+input, textarea {
   -webkit-user-select: text;
   user-select: text;
 } 
 
-.prose,
-.tiptap {
+.prose, .tiptap {
   -webkit-user-select: text;
   user-select: text;
 }
