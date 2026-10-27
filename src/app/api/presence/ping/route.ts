@@ -1,28 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    console.log("--- Presence Ping Received ---");
-
-    let body = {};
-    try {
-      body = await request.json();
-      console.log("Ping Payload:", body);
-    } catch (e) {
-      console.log("No JSON body received.");
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Pong", 
-      timestamp: new Date().toISOString() 
+    // Update the user's lastSeenAt to right now
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { lastSeenAt: new Date() },
     });
 
-  } catch (error: any) {
+    return NextResponse.json({ success: true });
+  } catch (error) {
     console.error("PING API ERROR:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Internal Server Error" }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to ping" }, { status: 500 });
   }
 }
