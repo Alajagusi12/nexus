@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ['livekit-server-sdk'], // <--- ADD THIS LINE
+  serverExternalPackages: ["livekit-server-sdk"],
 };
 
 export default nextConfig;
