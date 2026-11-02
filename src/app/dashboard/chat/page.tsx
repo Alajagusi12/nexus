@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +21,7 @@ import {
   Smile,
   Check,
   CheckCheck,
+  Clock,
   FileText,
   Download,
   Users,
@@ -30,6 +31,10 @@ import {
   CheckSquare,
   Calendar,
   Sparkles,
+  Trash2,
+  Copy,
+  MoreHorizontal,
+  BellOff,
 } from "lucide-react";
 
 type OtherUser = {
@@ -61,6 +66,7 @@ type Message = {
   id: string;
   content: string;
   userId: string;
+  conversationId?: string;
   createdAt: string;
   parentId?: string | null;
   fileUrl?: string | null;
@@ -90,6 +96,7 @@ const FULL_EMOJIS = [
   "🍕", "☕", "🎯", "🏆", "📌", "📎", "💼", "📝",
 ];
 const TYPING_TIMEOUT = 2000;
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 const PRIORITIES = [
   { value: "LOW", label: "Low", color: "text-slate-400" },
@@ -97,6 +104,66 @@ const PRIORITIES = [
   { value: "HIGH", label: "High", color: "text-orange-400" },
   { value: "URGENT", label: "Urgent", color: "text-red-400" },
 ];
+
+/* ---------- module-scope helpers ---------- */
+
+function parseReactions(reactions: string | null | undefined): Record<string, string[]> {
+  if (!reactions) return {};
+  try {
+    const parsed = JSON.parse(reactions);
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function getPresence(user: OtherUser | null | undefined) {
+  if (!user?.lastSeenAt) return { isOnline: false, label: "Offline" };
+  const lastSeen = new Date(user.lastSeenAt).getTime();
+  const diffSec = Math.floor((Date.now() - lastSeen) / 1000);
+  if (diffSec < 60) return { isOnline: true, label: "Online" };
+  if (diffSec < 3600)
+    return { isOnline: false, label: `Active ${Math.floor(diffSec / 60)}m ago` };
+  if (diffSec < 86400)
+    return { isOnline: false, label: `Active ${Math.floor(diffSec / 3600)}h ago` };
+  return { isOnline: false, label: "Offline" };
+}
+
+function formatDayLabel(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.floor((startOf(now) - startOf(d)) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7)
+    return d.toLocaleDateString(undefined, { weekday: "long" });
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function sameDay(a: string, b: string) {
+  const da = new Date(a), db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}
+
+/** Should `current` be visually grouped with `prev`? */
+function shouldGroup(prev: Message | undefined, current: Message) {
+  if (!prev) return false;
+  if (prev.userId !== current.userId) return false;
+  if (prev.parentId || current.parentId) return false;
+  if (!sameDay(prev.createdAt, current.createdAt)) return false;
+  const dt = new Date(current.createdAt).getTime() - new Date(prev.createdAt).getTime();
+  return dt >= 0 && dt <= GROUP_WINDOW_MS;
+}
 
 export default function ChatPage() {
   const { data: session } = useSession();
@@ -129,6 +196,8 @@ export default function ChatPage() {
   const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showGroupCall, setShowGroupCall] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [taskFromMessage, setTaskFromMessage] = useState<Message | null>(null);
   const [taskForm, setTaskForm] = useState({
@@ -169,6 +238,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -178,6 +248,7 @@ export default function ChatPage() {
       setShowPinnedList(false);
       setShowAIPanel(false);
       setShowGroupCall(false);
+      setShowHeaderMenu(false);
       loadPins();
     } else {
       setPinnedMessages([]);
@@ -213,12 +284,7 @@ export default function ChatPage() {
       .channel(`conversation-${activeId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "Message",
-          filter: `conversationId=eq.${activeId}`,
-        },
+        { event: "*", schema: "public", table: "Message", filter: `conversationId=eq.${activeId}` },
         (payload: any) => {
           if (payload.eventType === "INSERT") {
             const newMsg = payload.new;
@@ -258,16 +324,13 @@ export default function ChatPage() {
     if (!activeId || !session?.user?.id) return;
 
     const channel = supabase.channel(`typing-${activeId}`);
-
     channel
       .on("broadcast", { event: "typing" }, (payload: any) => {
         if (payload.payload.userId === session.user.id) return;
         if (payload.payload.userName) {
           setOtherUserTyping(true);
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => {
-            setOtherUserTyping(false);
-          }, TYPING_TIMEOUT);
+          typingTimeoutRef.current = setTimeout(() => setOtherUserTyping(false), TYPING_TIMEOUT);
         }
       })
       .on("broadcast", { event: "stop-typing" }, (payload: any) => {
@@ -297,10 +360,9 @@ export default function ChatPage() {
     }
     setSearchingMsgs(true);
     const t = setTimeout(() => {
-      fetch(
-        `/api/conversations/${activeId}/search?q=${encodeURIComponent(msgSearch)}`,
-        { cache: "no-store" }
-      )
+      fetch(`/api/conversations/${activeId}/search?q=${encodeURIComponent(msgSearch)}`, {
+        cache: "no-store",
+      })
         .then((res) => res.json())
         .then((data) => {
           setSearchMsgResults(Array.isArray(data) ? data : []);
@@ -322,12 +384,11 @@ export default function ChatPage() {
     }
     setSearching(true);
     const t = setTimeout(() => {
-      fetch(`/api/users/search?q=${encodeURIComponent(search)}`, {
-        cache: "no-store",
-      })
+      fetch(`/api/users/search?q=${encodeURIComponent(search)}`, { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
-          setSearchResults(Array.isArray(data) ? data : []);
+          if (data.users) setSearchResults(Array.isArray(data.users) ? data.users : []);
+          else setSearchResults(Array.isArray(data) ? data : []);
           setSearching(false);
         })
         .catch(() => setSearching(false));
@@ -338,9 +399,7 @@ export default function ChatPage() {
   async function loadPins() {
     if (!activeId) return;
     try {
-      const res = await fetch(`/api/conversations/${activeId}/pins`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/conversations/${activeId}/pins`, { cache: "no-store" });
       const data = await res.json();
       setPinnedMessages(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -376,9 +435,7 @@ export default function ChatPage() {
         setGroupName("");
         await loadConversations();
         setActiveId(data.id);
-        toast.success(
-          selectedUsers.length > 1 ? "Group created" : "Conversation started"
-        );
+        toast.success(selectedUsers.length > 1 ? "Group created" : "Conversation started");
       }
     } catch (err) {
       console.error(err);
@@ -387,13 +444,12 @@ export default function ChatPage() {
   }
 
   async function startCall(callType: "video" | "voice") {
+    const active = conversations.find((c) => c.id === activeId);
     if (!activeId || !active) return;
-
     if (active.isGroup) {
       setShowGroupCall(true);
       return;
     }
-
     try {
       const res = await fetch("/api/calls", {
         method: "POST",
@@ -401,9 +457,7 @@ export default function ChatPage() {
         body: JSON.stringify({ conversationId: activeId, callType }),
       });
       const data = await res.json();
-      if (data.id) {
-        window.location.href = `/dashboard/chat/call/${data.id}`;
-      }
+      if (data.id) window.location.href = `/dashboard/chat/call/${data.id}`;
     } catch (err) {
       console.error(err);
     }
@@ -418,7 +472,7 @@ export default function ChatPage() {
       await fetch(`/api/conversations/${activeId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: input }),
+        body: JSON.stringify({ content: input.trim() }),
       });
       setInput("");
       if (typingChannelRef.current && session?.user?.id) {
@@ -441,22 +495,18 @@ export default function ChatPage() {
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !activeId) return;
-
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File too large. Max 10MB.");
       return;
     }
-
     setUploading(true);
     try {
       const { uploadFile } = await import("@/lib/storage");
       const result = await uploadFile(file, "attachments", activeId);
-
       if (result.error) {
         toast.error("Upload failed: " + result.error);
         return;
       }
-
       await fetch(`/api/conversations/${activeId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -467,7 +517,6 @@ export default function ChatPage() {
           fileName: file.name,
         }),
       });
-
       toast.success("File uploaded");
       loadConversations();
     } catch (err) {
@@ -482,7 +531,6 @@ export default function ChatPage() {
   async function toggleReaction(messageId: string, emoji: string) {
     if (!activeId || !session?.user?.id) return;
     setEmojiPickerFor(null);
-
     const userId = session.user.id;
 
     setMessages((prev) =>
@@ -490,18 +538,13 @@ export default function ChatPage() {
         if (m.id !== messageId) return m;
         const reactions = parseReactions(m.reactions);
         const users: string[] = reactions[emoji] || [];
-
         if (users.includes(userId)) {
           const updated = users.filter((id) => id !== userId);
-          if (updated.length === 0) {
-            delete reactions[emoji];
-          } else {
-            reactions[emoji] = updated;
-          }
+          if (updated.length === 0) delete reactions[emoji];
+          else reactions[emoji] = updated;
         } else {
           reactions[emoji] = [...users, userId];
         }
-
         return { ...m, reactions: JSON.stringify(reactions) };
       })
     );
@@ -526,25 +569,18 @@ export default function ChatPage() {
   async function togglePin(msg: Message) {
     if (!activeId) return;
     setActionSheetMsg(null);
-
     const isPinned = pinnedMessages.some((p) => p.id === msg.id);
-
-    if (isPinned) {
-      setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
-    } else {
-      setPinnedMessages((prev) => [msg, ...prev]);
-    }
+    if (isPinned) setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
+    else setPinnedMessages((prev) => [msg, ...prev]);
 
     try {
-      const res = await fetch(
-        `/api/conversations/${activeId}/messages/${msg.id}/pin`,
-        { method: "POST" }
-      );
+      const res = await fetch(`/api/conversations/${activeId}/messages/${msg.id}/pin`, {
+        method: "POST",
+      });
       if (res.ok) {
         const updated = await res.json();
-        if (updated.pinnedAt) {
-          toast.success("Message pinned");
-        } else {
+        if (updated.pinnedAt) toast.success("Message pinned");
+        else {
           setPinnedMessages((prev) => prev.filter((p) => p.id !== updated.id));
           toast.success("Message unpinned");
         }
@@ -591,9 +627,7 @@ export default function ChatPage() {
       if (res.ok) {
         const updated = await res.json();
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === editingMessageId ? { ...m, ...updated } : m
-          )
+          prev.map((m) => (m.id === editingMessageId ? { ...m, ...updated } : m))
         );
         setEditingMessageId(null);
         setEditingContent("");
@@ -622,6 +656,40 @@ export default function ChatPage() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete");
+    }
+  }
+
+  async function deleteConversation() {
+    if (!activeId) return;
+    setShowHeaderMenu(false);
+    if (!confirm("Delete this entire conversation? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/conversations/${activeId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Chat deleted");
+        setMessages([]);
+        setActiveId(null);
+        sessionStorage.removeItem("lastActiveConversation");
+        loadConversations();
+      } else {
+        toast.error("Failed to delete chat");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete chat");
+    }
+  }
+
+  async function copyMessage(text: string) {
+    if (!text) {
+      toast.error("Nothing to copy");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy");
     }
   }
 
@@ -669,7 +737,6 @@ export default function ChatPage() {
   async function createTaskFromMessage() {
     if (!taskFromMessage || !taskForm.title.trim()) return;
     setCreatingTask(true);
-
     try {
       const res = await fetch(`/api/messages/${taskFromMessage.id}/to-task`, {
         method: "POST",
@@ -681,20 +748,13 @@ export default function ChatPage() {
           dueDate: taskForm.dueDate || null,
         }),
       });
-
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed");
       }
-
       toast.success("Task created");
       setTaskFromMessage(null);
-      setTaskForm({
-        title: "",
-        description: "",
-        priority: "MEDIUM",
-        dueDate: "",
-      });
+      setTaskForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to create task");
@@ -703,51 +763,24 @@ export default function ChatPage() {
     }
   }
 
-  function parseReactions(reactions: string | null | undefined) {
-    if (!reactions) return {};
-    try {
-      return JSON.parse(reactions);
-    } catch {
-      return {};
-    }
-  }
-
-  function getPresence(user: OtherUser | null | undefined) {
-    if (!user?.lastSeenAt) return { isOnline: false, label: "Offline" };
-    const lastSeen = new Date(user.lastSeenAt).getTime();
-    const now = Date.now();
-    const diffSec = Math.floor((now - lastSeen) / 1000);
-
-    if (diffSec < 60) return { isOnline: true, label: "Online" };
-    if (diffSec < 3600)
-      return {
-        isOnline: false,
-        label: `Active ${Math.floor(diffSec / 60)}m ago`,
-      };
-    if (diffSec < 86400)
-      return {
-        isOnline: false,
-        label: `Active ${Math.floor(diffSec / 3600)}h ago`,
-      };
-    return { isOnline: false, label: "Offline" };
-  }
-
   const active = conversations.find((c) => c.id === activeId);
+
   return (
-    <div className="flex h-full relative overflow-hidden">
+    <div className="flex h-full relative overflow-hidden bg-background">
+      {/* ===================== SIDEBAR ===================== */}
       <aside
         className={`${
           activeId ? "hidden lg:flex" : "flex"
         } w-full lg:w-72 lg:flex border-r border-border flex-col flex-shrink-0 absolute lg:relative inset-0 lg:inset-auto z-10 bg-background`}
       >
-        <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-semibold flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Chats
+        <div className="px-4 py-3.5 border-b border-border flex items-center justify-between">
+          <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-emerald-500" />
+            Messages
           </h2>
           <button
             onClick={() => setShowNewDm(true)}
-            className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
+            className="p-1.5 rounded-lg hover:bg-foreground/[0.06] text-muted hover:text-foreground transition"
             title="New conversation"
           >
             <Plus className="w-4 h-4" />
@@ -760,10 +793,23 @@ export default function ChatPage() {
               <Loader2 className="w-5 h-5 animate-spin text-muted" />
             </div>
           ) : conversations.length === 0 ? (
-            <div className="text-center py-8 px-4 text-muted text-sm">
-              No conversations yet.
-              <br />
-              Click + to start one.
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                <MessageSquare className="w-7 h-7 text-emerald-500" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">
+                No conversations yet
+              </p>
+              <p className="text-xs text-muted mb-4 leading-relaxed">
+                Start a chat with a teammate to begin collaborating.
+              </p>
+              <button
+                onClick={() => setShowNewDm(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New conversation
+              </button>
             </div>
           ) : (
             conversations.map((c) => {
@@ -771,18 +817,19 @@ export default function ChatPage() {
                 !c.isGroup && c.otherUser
                   ? getPresence(c.otherUser)
                   : { isOnline: false, label: "" };
+              const isActive = activeId === c.id;
               return (
                 <button
                   key={c.id}
                   onClick={() => setActiveId(c.id)}
-                  className={`w-full text-left p-3 border-b border-border/40 transition flex items-center gap-3 ${
-                    activeId === c.id
-                      ? "bg-emerald-500/10"
-                      : "hover:bg-foreground/5"
+                  className={`w-full text-left px-4 py-2.5 border-l-2 transition flex items-center gap-3 ${
+                    isActive
+                      ? "border-emerald-500 bg-foreground/[0.04]"
+                      : "border-transparent hover:bg-foreground/[0.025]"
                   }`}
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[13px] font-semibold overflow-hidden text-white">
                       {c.isGroup ? (
                         <Users className="w-4 h-4" />
                       ) : c.displayImage ? (
@@ -796,23 +843,31 @@ export default function ChatPage() {
                       )}
                     </div>
                     {!c.isGroup && presence.isOnline && (
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {c.displayName}
-                      {c.isGroup && (
-                        <span className="text-xs text-muted ml-1">
-                          ({c.memberCount})
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-[13.5px] font-medium truncate text-foreground">
+                        {c.displayName}
+                        {c.isGroup && (
+                          <span className="text-[11px] text-muted ml-1 font-normal">
+                            · {c.memberCount}
+                          </span>
+                        )}
+                      </p>
+                      {c.lastMessage?.createdAt && (
+                        <span className="text-[10.5px] text-muted/70 flex-shrink-0">
+                          {new Date(c.lastMessage.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       )}
-                    </p>
+                    </div>
                     <p
-                      className={`text-xs truncate ${
-                        !c.isGroup && presence.isOnline
-                          ? "text-green-500"
-                          : "text-muted"
+                      className={`text-[12px] truncate mt-0.5 ${
+                        !c.isGroup && presence.isOnline ? "text-emerald-500" : "text-muted"
                       }`}
                     >
                       {!c.isGroup && c.otherUser
@@ -826,63 +881,44 @@ export default function ChatPage() {
           )}
         </div>
       </aside>
-
+      {/* ===================== MAIN PANEL ===================== */}
       {active ? (
-        <div
-          className={`${
-            activeId ? "flex" : "hidden lg:flex"
-          } flex-1 flex flex-col min-w-0`}
-        >
-          <header className="border-b border-border px-3 md:px-6 py-3 md:py-4 flex items-center gap-1.5 md:gap-2 overflow-x-auto">
+        <div className={`${activeId ? "flex" : "hidden lg:flex"} flex-1 flex-col min-w-0`}>
+          {/* ---- Header ---- */}
+          <header className="border-b border-border px-3 md:px-5 py-3 flex items-center gap-2 flex-shrink-0 bg-background">
             <button
               onClick={() => setActiveId(null)}
-              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0"
               aria-label="Back to chats"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold overflow-hidden text-white">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[13px] font-semibold overflow-hidden text-white">
                 {active.isGroup ? (
                   <Users className="w-4 h-4" />
                 ) : active.displayImage ? (
-                  <img
-                    src={active.displayImage}
-                    alt={active.displayName}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={active.displayImage} alt={active.displayName} className="w-full h-full object-cover" />
                 ) : (
                   active.displayName?.[0]?.toUpperCase() || "?"
                 )}
               </div>
-              {!active.isGroup &&
-                active.otherUser &&
-                getPresence(active.otherUser).isOnline && (
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
-                )}
+              {!active.isGroup && active.otherUser && getPresence(active.otherUser).isOnline && (
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold truncate">{active.displayName}</h1>
+              <h1 className="text-[14.5px] font-semibold tracking-tight truncate">
+                {active.displayName}
+              </h1>
               <p
-                className={`text-xs truncate ${
-                  !active.isGroup &&
-                  active.otherUser &&
-                  getPresence(active.otherUser).isOnline
-                    ? "text-green-500"
+                className={`text-[11.5px] truncate ${
+                  !active.isGroup && active.otherUser && getPresence(active.otherUser).isOnline
+                    ? "text-emerald-500"
                     : "text-muted"
                 }`}
               >
@@ -896,449 +932,542 @@ export default function ChatPage() {
 
             <button
               onClick={() => setShowAIPanel(!showAIPanel)}
-              className={`p-2.5 rounded-lg transition flex-shrink-0 ${
-                showAIPanel ? "bg-emerald-500/10" : "hover:bg-foreground/10"
+              className={`p-2 rounded-lg transition flex-shrink-0 ${
+                showAIPanel ? "bg-emerald-500/10 text-emerald-500" : "hover:bg-foreground/[0.06] text-muted"
               }`}
               title="AI Assistant"
             >
-              <Sparkles
-                className={`w-5 h-5 ${
-                  showAIPanel ? "text-emerald-500" : "text-muted"
-                }`}
-              />
+              <Sparkles className="w-[18px] h-[18px]" />
             </button>
 
             <button
               onClick={() => setShowSearch(true)}
-              className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              className="p-2 rounded-lg hover:bg-foreground/[0.06] text-muted transition flex-shrink-0"
               title="Search messages"
             >
-              <Search className="w-5 h-5 text-muted" />
+              <Search className="w-[18px] h-[18px]" />
             </button>
 
             <button
               onClick={() => startCall("voice")}
-              className="hidden sm:flex p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              className="hidden sm:flex p-2 rounded-lg hover:bg-foreground/[0.06] text-muted transition flex-shrink-0"
               title="Voice call"
             >
-              <Phone className="w-5 h-5 text-muted" />
+              <Phone className="w-[18px] h-[18px]" />
             </button>
+
             <button
               onClick={() => startCall("video")}
-              className="p-2.5 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+              className="p-2 rounded-lg hover:bg-foreground/[0.06] text-muted transition flex-shrink-0"
               title="Video call"
             >
-              <Video className="w-5 h-5 text-muted" />
+              <Video className="w-[18px] h-[18px]" />
             </button>
+
+            {/* Consolidated menu */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowHeaderMenu((v) => !v)}
+                className="p-2 rounded-lg hover:bg-foreground/[0.06] text-muted transition"
+                title="More"
+              >
+                <MoreHorizontal className="w-[18px] h-[18px]" />
+              </button>
+              {showHeaderMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card shadow-2xl py-1 z-50 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setShowHeaderMenu(false);
+                        setShowSearch(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-foreground/[0.06] text-left transition"
+                    >
+                      <Search className="w-4 h-4 text-muted" />
+                      Search messages
+                    </button>
+                    <button
+                      onClick={() => setShowHeaderMenu(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-foreground/[0.06] text-left transition"
+                    >
+                      <BellOff className="w-4 h-4 text-muted" />
+                      Mute notifications
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                    <button
+                      onClick={deleteConversation}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-red-500/10 text-red-500 text-left transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete conversation
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </header>
 
+          {/* ---- Pinned banner ---- */}
           {pinnedMessages.length > 0 && (
             <button
               onClick={() => setShowPinnedList(true)}
-              className="w-full flex items-center gap-2 px-3 md:px-6 py-2 border-b border-border bg-yellow-500/5 hover:bg-yellow-500/10 transition text-left"
+              className="w-full flex items-center gap-2 px-3 md:px-5 py-2 border-b border-border bg-yellow-500/[0.04] hover:bg-yellow-500/[0.08] transition text-left flex-shrink-0"
             >
               <Pin className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-              <span className="text-xs font-medium text-foreground/80 truncate flex-1">
+              <span className="text-[12px] font-medium text-foreground/80 truncate flex-1">
                 <span className="text-yellow-500 font-semibold">
-                  {pinnedMessages.length}{" "}
-                  {pinnedMessages.length === 1 ? "pin" : "pins"}
+                  {pinnedMessages.length} {pinnedMessages.length === 1 ? "pin" : "pins"}
                 </span>
                 {" — "}
                 {pinnedMessages[0]?.content || "📎 Attachment"}
               </span>
-              <span className="text-xs text-muted flex-shrink-0">
-                View all
-              </span>
+              <span className="text-[11px] text-muted flex-shrink-0">View all</span>
             </button>
           )}
 
-          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 space-y-4">
+          {/* ---- Message list ---- */}
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4">
             {loadingMessages ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
               </div>
             ) : messages.length === 0 ? (
-              <div className="text-center py-12 text-muted">
-                <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>No messages yet. Say hi!</p>
+              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                  <MessageSquare className="w-8 h-8 text-emerald-500" />
+                </div>
+                <p className="text-[15px] font-semibold text-foreground mb-1">
+                  No messages yet
+                </p>
+                <p className="text-[13px] text-muted max-w-xs leading-relaxed">
+                  Say hello to {active.displayName}. Your conversation starts here.
+                </p>
               </div>
             ) : (
-              <AnimatePresence initial={false}>
-                {messages.map((msg) => {
-                  const isMe = msg.userId === session?.user?.id;
-                  const reactions = parseReactions(msg.reactions);
-                  const reactionKeys = Object.keys(reactions);
-                  const isImage = msg.fileType?.startsWith("image/");
-                  const replyCount = msg.replyCount || 0;
-                  return (
-                    <motion.div
-                      key={msg.id}
-                      id={`msg-${msg.id}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="flex gap-3 group relative transition-all"
-                      onTouchStart={() => handleMessageTouchStart(msg)}
-                      onTouchEnd={handleMessageTouchEnd}
-                      onTouchMove={handleMessageTouchEnd}
-                      onClick={handleMessageClick}
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-semibold text-sm flex-shrink-0 overflow-hidden text-white">
-                        {msg.user?.image ? (
-                          <img
-                            src={msg.user.image}
-                            alt={msg.user.name || "user"}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          msg.user?.name?.[0]?.toUpperCase() || "?"
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">
-                            {msg.user?.name || "User"}
-                            {isMe && (
-                              <span className="text-xs text-emerald-500 ml-2">
-                                (you)
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-xs text-muted">
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          {isMe && (
-                            <span className="ml-1">
-                              {msg.readAt ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 text-muted" />
-                              )}
+              <div className="space-y-0.5 max-w-3xl mx-auto">
+                <AnimatePresence initial={false}>
+                  {messages.map((msg, idx) => {
+                    const prev = messages[idx - 1];
+                    const next = messages[idx + 1];
+                    const isMe = msg.userId === session?.user?.id;
+                    const reactions = parseReactions(msg.reactions);
+                    const reactionKeys = Object.keys(reactions);
+                    const isImage = msg.fileType?.startsWith("image/");
+                    const replyCount = msg.replyCount || 0;
+                    const grouped = shouldGroup(prev, msg);
+                    const groupedWithNext = next ? shouldGroup(msg, next) : false;
+                    const showDateDivider = !prev || !sameDay(prev.createdAt, msg.createdAt);
+
+                    return (
+                      <div key={msg.id}>
+                        {showDateDivider && (
+                          <div className="flex items-center gap-3 my-4">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted/80 px-2 py-0.5 rounded-full bg-foreground/[0.04]">
+                              {formatDayLabel(msg.createdAt)}
                             </span>
-                          )}
-                        </div>
-
-                        {msg.fileUrl && isImage && (
-                          <div className="mt-2">
-                            <img
-                              src={msg.fileUrl}
-                              alt={msg.fileName || "attachment"}
-                              className="max-w-[240px] md:max-w-sm rounded-xl border border-border"
-                            />
+                            <div className="flex-1 h-px bg-border" />
                           </div>
                         )}
 
-                        {msg.fileUrl && !isImage && (
-                          <a
-                            href={msg.fileUrl}
-                            download={msg.fileName || "file"}
-                            className="mt-2 inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-foreground/5 hover:bg-foreground/10 transition max-w-sm"
-                          >
-                            <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                              <FileText className="w-4 h-4 text-emerald-500" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {msg.fileName || "File"}
-                              </p>
-                              <p className="text-xs text-muted">
-                                Click to download
-                              </p>
-                            </div>
-                            <Download className="w-4 h-4 text-muted flex-shrink-0" />
-                          </a>
-                        )}
-
-                        {editingMessageId === msg.id ? (
-                          <div className="mt-2 space-y-2">
-                            <textarea
-                              value={editingContent}
-                              onChange={(e) =>
-                                setEditingContent(e.target.value)
-                              }
-                              rows={2}
-                              autoFocus
-                              className="w-full rounded-xl border border-emerald-500/50 bg-foreground/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 transition resize-none"
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                onClick={saveEdit}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={cancelEdit}
-                                className="px-3 py-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-xs font-semibold transition"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                        <motion.div
+                          id={`msg-${msg.id}`}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className={`flex gap-2.5 group relative ${grouped ? "mt-0.5" : "mt-3"} ${isMe ? "flex-row-reverse" : ""}`}
+                          onTouchStart={() => handleMessageTouchStart(msg)}
+                          onTouchEnd={handleMessageTouchEnd}
+                          onTouchMove={handleMessageTouchEnd}
+                          onClick={handleMessageClick}
+                        >
+                          {/* Avatar column */}
+                          <div className="w-8 flex-shrink-0">
+                            {!grouped && (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[11px] font-semibold overflow-hidden text-white">
+                                {msg.user?.image ? (
+                                  <img src={msg.user.image} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  msg.user?.name?.[0]?.toUpperCase() || "?"
+                                )}
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          msg.content && (
-                            <p className="text-foreground/80 text-sm mt-0.5 break-words min-w-0">
-                              {msg.content}
-                              {msg.editedAt && (
-                                <span className="text-[10px] text-muted ml-2">
-                                  (edited)
+
+                          {/* Content column */}
+                          <div className={`flex-1 min-w-0 flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                            {!grouped && (
+                              <div className={`flex items-baseline gap-2 mb-1 ${isMe ? "flex-row-reverse" : ""}`}>
+                                <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                                  {isMe ? "You" : msg.user?.name || "User"}
                                 </span>
-                              )}
-                            </p>
-                          )
-                        )}
+                                <span className="text-[11px] text-muted/70">
+                                  {new Date(msg.createdAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            )}
 
-                        {reactionKeys.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {reactionKeys.map((emoji) => {
-                              const users: string[] = reactions[emoji];
-                              const mine = users.includes(
-                                session?.user?.id || ""
-                              );
-                              return (
+                            {/* Image */}
+                            {msg.fileUrl && isImage && (
+                              <div className={`mt-0.5 ${isMe ? "ml-auto" : ""}`}>
                                 <button
-                                  key={emoji}
-                                  onClick={() =>
-                                    toggleReaction(msg.id, emoji)
-                                  }
-                                  className={`px-2 py-0.5 rounded-full border text-xs transition ${
-                                    mine
-                                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-500 dark:text-emerald-300"
-                                      : "bg-foreground/5 border-border hover:bg-foreground/10"
-                                  }`}
+                                  type="button"
+                                  onClick={() => setPreviewImage(msg.fileUrl!)}
+                                  className="block rounded-2xl overflow-hidden border border-border hover:border-emerald-500/40 transition"
                                 >
-                                  {emoji} {users.length}
+                                  <img
+                                    src={msg.fileUrl}
+                                    alt={msg.fileName || "attachment"}
+                                    className="max-w-[260px] md:max-w-sm max-h-80 object-cover"
+                                  />
                                 </button>
-                              );
-                            })}
+                              </div>
+                            )}
+
+                            {/* File */}
+                            {msg.fileUrl && !isImage && (
+                              <a
+                                href={msg.fileUrl}
+                                download={msg.fileName || "file"}
+                                className={`mt-0.5 inline-flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-border bg-foreground/[0.03] hover:bg-foreground/[0.06] transition max-w-sm ${isMe ? "ml-auto" : ""}`}
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                                  <FileText className="w-4 h-4 text-emerald-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-medium truncate">{msg.fileName || "File"}</p>
+                                  <p className="text-[11px] text-muted">Click to download</p>
+                                </div>
+                                <Download className="w-4 h-4 text-muted flex-shrink-0" />
+                              </a>
+                            )}
+
+                            {/* Body / edit */}
+                            {editingMessageId === msg.id ? (
+                              <div className="mt-1 w-full max-w-md space-y-2">
+                                <textarea
+                                  value={editingContent}
+                                  onChange={(e) => setEditingContent(e.target.value)}
+                                  rows={2}
+                                  autoFocus
+                                  className="w-full rounded-xl border border-emerald-500/50 bg-foreground/[0.04] px-3 py-2 text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none"
+                                />
+                                <div className={`flex gap-2 ${isMe ? "justify-end" : ""}`}>
+                                  <button
+                                    onClick={saveEdit}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEdit}
+                                    className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] hover:bg-foreground/10 text-xs font-semibold transition"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              msg.content && (
+                                <div
+                                  className={`relative max-w-[85%] md:max-w-[75%] ${
+                                    isMe
+                                      ? "bg-emerald-500/[0.12] text-foreground rounded-2xl rounded-tr-md"
+                                      : "bg-foreground/[0.04] text-foreground rounded-2xl rounded-tl-md"
+                                  } px-3.5 py-2 ${groupedWithNext ? (isMe ? "rounded-br-md" : "rounded-bl-md") : ""}`}
+                                >
+                                  <p className="text-[14.5px] leading-relaxed break-words whitespace-pre-wrap">
+                                    {msg.content}
+                                    {msg.editedAt && (
+                                      <span className="text-[10px] text-muted ml-2 italic">(edited)</span>
+                                    )}
+                                  </p>
+                                </div>
+                              )
+                            )}
+
+                            {/* Reactions */}
+                            {reactionKeys.length > 0 && (
+                              <div className={`flex flex-wrap gap-1 mt-1.5 ${isMe ? "justify-end" : ""}`}>
+                                {reactionKeys.map((emoji) => {
+                                  const users: string[] = reactions[emoji];
+                                  const mine = users.includes(session?.user?.id || "");
+                                  return (
+                                    <button
+                                      key={emoji}
+                                      onClick={() => toggleReaction(msg.id, emoji)}
+                                      className={`px-1.5 py-0.5 rounded-full border text-[11px] transition ${
+                                        mine
+                                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300"
+                                          : "bg-foreground/[0.04] border-border hover:bg-foreground/[0.08]"
+                                      }`}
+                                    >
+                                      {emoji} {users.length}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Reply count */}
+                            {replyCount > 0 && (
+                              <button
+                                onClick={() => setOpenThread(msg)}
+                                className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-medium text-emerald-500 hover:text-emerald-400 transition"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                {replyCount} {replyCount === 1 ? "reply" : "replies"}
+                              </button>
+                            )}
+
+                            {/* Read state (only on last of group, only for me) */}
+                            {isMe && !groupedWithNext && (
+                              <div className="flex items-center gap-1 mt-1 text-[10.5px] text-muted/70">
+                                {msg.readAt ? (
+                                  <>
+                                    <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Read</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Sent</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
 
-                        {replyCount > 0 && (
-                          <button
-                            onClick={() => setOpenThread(msg)}
-                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 hover:text-emerald-400 transition"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            {replyCount}{" "}
-                            {replyCount === 1 ? "reply" : "replies"}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition items-start gap-1">
-                        <button
-                          onClick={() => openTaskFromMessage(msg)}
-                          className="p-1.5 rounded-lg hover:bg-green-500/20 transition"
-                          title="Turn into task"
-                        >
-                          <CheckSquare className="w-4 h-4 text-green-500" />
-                        </button>
-                        <button
-                          onClick={() => setOpenThread(msg)}
-                          className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
-                          title="Reply in thread"
-                        >
-                          <MessageCircle className="w-4 h-4 text-muted" />
-                        </button>
-                        <button
-                          onClick={() => togglePin(msg)}
-                          className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
-                          title={
-                            pinnedMessages.some((p) => p.id === msg.id)
-                              ? "Unpin"
-                              : "Pin"
-                          }
-                        >
-                          <Pin
-                            className={`w-4 h-4 ${
-                              pinnedMessages.some((p) => p.id === msg.id)
-                                ? "text-yellow-500 fill-yellow-500"
-                                : "text-muted"
-                            }`}
-                          />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setEmojiPickerFor(
-                              emojiPickerFor === msg.id ? null : msg.id
-                            )
-                          }
-                          className="p-1.5 rounded-lg hover:bg-foreground/10 transition"
-                        >
-                          <Smile className="w-4 h-4 text-muted" />
-                        </button>
-                        {isMe && msg.content && (
-                          <button
-                            onClick={() => startEditing(msg)}
-                            className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition"
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4 text-emerald-500" />
-                          </button>
-                        )}
-                        {isMe && (
-                          <button
-                            onClick={() => deleteMessage(msg.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-500/20 transition"
-                            title="Delete"
-                          >
-                            <X className="w-4 h-4 text-red-500" />
-                          </button>
-                        )}
-                      </div>
-
-                      {emojiPickerFor === msg.id && (
-                        <>
+                          {/* Hover toolbar */}
                           <div
-                            className="fixed inset-0 z-40 md:hidden"
-                            onClick={() => setEmojiPickerFor(null)}
-                          />
-                          <div className="absolute right-0 md:right-12 bottom-full md:bottom-auto md:top-0 mb-2 md:mb-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px] md:w-auto">
-                            <div className="grid grid-cols-8 md:flex md:flex-wrap gap-1 max-h-48 md:max-h-none overflow-y-auto">
-                              {FULL_EMOJIS.map((emoji) => (
-                                <button
-                                  key={emoji}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleReaction(msg.id, emoji);
-                                  }}
-                                  className="w-8 h-8 rounded-lg hover:bg-foreground/10 transition text-lg flex items-center justify-center"
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
+                            className={`hidden md:flex absolute top-0 ${
+                              isMe ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"
+                            } opacity-0 group-hover:opacity-100 transition items-center gap-0.5 rounded-lg border border-border bg-card shadow-sm px-1 py-0.5 z-10`}
+                          >
+                            <button
+                              onClick={() => setEmojiPickerFor(emojiPickerFor === msg.id ? null : msg.id)}
+                              className="p-1 rounded hover:bg-foreground/[0.06] transition"
+                              title="React"
+                            >
+                              <Smile className="w-3.5 h-3.5 text-muted" />
+                            </button>
+                            <button
+                              onClick={() => setOpenThread(msg)}
+                              className="p-1 rounded hover:bg-foreground/[0.06] transition"
+                              title="Reply"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-muted" />
+                            </button>
+                            <button
+                              onClick={() => togglePin(msg)}
+                              className="p-1 rounded hover:bg-foreground/[0.06] transition"
+                              title={pinnedMessages.some((p) => p.id === msg.id) ? "Unpin" : "Pin"}
+                            >
+                              <Pin
+                                className={`w-3.5 h-3.5 ${
+                                  pinnedMessages.some((p) => p.id === msg.id)
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-muted"
+                                }`}
+                              />
+                            </button>
+                            <button
+                              onClick={() => setActionSheetMsg(msg)}
+                              className="p-1 rounded hover:bg-foreground/[0.06] transition"
+                              title="More"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5 text-muted" />
+                            </button>
                           </div>
-                        </>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            )}
 
-            {otherUserTyping && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-sm text-muted pl-12"
-              >
-                <div className="flex gap-1">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  />
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  />
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  />
-                </div>
-                <span>
-                  {active.isGroup
-                    ? "Someone is typing..."
-                    : `${active.otherUser?.name || "Someone"} is typing...`}
-                </span>
-              </motion.div>
-            )}
+                          {/* Emoji picker */}
+                          {emojiPickerFor === msg.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setEmojiPickerFor(null)} />
+                              <div
+                                className={`absolute ${
+                                  isMe ? "right-0" : "left-0"
+                                } top-full mt-1 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[280px]`}
+                              >
+                                <div className="grid grid-cols-8 gap-0.5 max-h-44 overflow-y-auto">
+                                  {FULL_EMOJIS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleReaction(msg.id, emoji);
+                                      }}
+                                      className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </motion.div>
+                      </div>
+                    );
+                  })}
+                </AnimatePresence>
 
-            <div ref={bottomRef} />
+                {otherUserTyping && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-2.5 mt-3"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-foreground/[0.06] flex items-center justify-center flex-shrink-0">
+                      <div className="flex gap-0.5">
+                        <div className="w-1 h-1 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                    <div className="bg-foreground/[0.04] rounded-2xl rounded-tl-md px-3.5 py-2 text-[12.5px] text-muted italic">
+                      {active.isGroup ? "Someone is typing…" : `${active.otherUser?.name || "They"} are typing…`}
+                    </div>
+                  </motion.div>
+                )}
+
+                <div ref={bottomRef} />
+              </div>
+            )}
           </div>
 
-          <form
-            onSubmit={sendMessage}
-            className="border-t border-border p-3 md:p-4 flex-shrink-0"
-          >
-            <div className="flex gap-3 items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="p-2.5 rounded-xl hover:bg-foreground/10 transition flex-shrink-0"
-                title="Attach file"
-              >
-                {uploading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-muted" />
-                ) : (
-                  <Paperclip className="w-5 h-5 text-muted" />
-                )}
-              </button>
+          {/* ---- Composer ---- */}
+          <form onSubmit={sendMessage} className="border-t border-border p-3 md:p-4 flex-shrink-0">
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-foreground/[0.025] focus-within:ring-1 focus-within:ring-emerald-500/40 focus-within:border-emerald-500/40 transition px-2 py-1.5">
+                <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0"
+                  title="Attach"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-[18px] h-[18px] animate-spin text-muted" />
+                  ) : (
+                    <Paperclip className="w-[18px] h-[18px] text-muted" />
+                  )}
+                </button>
 
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-
-                  if (
-                    typingChannelRef.current &&
-                    session?.user?.id &&
-                    activeId
-                  ) {
-                    if (!isCurrentlyTypingRef.current) {
-                      isCurrentlyTypingRef.current = true;
-                      typingChannelRef.current.send({
-                        type: "broadcast",
-                        event: "typing",
-                        payload: {
-                          userId: session.user.id,
-                          userName: session.user.name || "Someone",
-                        },
-                      });
+                <textarea
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    if (typingChannelRef.current && session?.user?.id && activeId) {
+                      if (!isCurrentlyTypingRef.current) {
+                        isCurrentlyTypingRef.current = true;
+                        typingChannelRef.current.send({
+                          type: "broadcast",
+                          event: "typing",
+                          payload: { userId: session.user.id, userName: session.user.name || "Someone" },
+                        });
+                      }
+                      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                      typingTimeoutRef.current = setTimeout(() => {
+                        isCurrentlyTypingRef.current = false;
+                        typingChannelRef.current?.send({
+                          type: "broadcast",
+                          event: "stop-typing",
+                          payload: { userId: session.user.id },
+                        });
+                      }, TYPING_TIMEOUT);
                     }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      // @ts-ignore — sendMessage handles the event shape
+                      sendMessage(e);
+                    }
+                  }}
+                  rows={1}
+                  placeholder={`Message ${active.displayName}…`}
+                  className="flex-1 min-w-0 bg-transparent px-1 py-2 text-[14.5px] text-foreground placeholder:text-muted focus:outline-none resize-none max-h-40"
+                  style={{ minHeight: "36px" }}
+                />
 
-                    if (typingTimeoutRef.current)
-                      clearTimeout(typingTimeoutRef.current);
-                    typingTimeoutRef.current = setTimeout(() => {
-                      isCurrentlyTypingRef.current = false;
-                      typingChannelRef.current?.send({
-                        type: "broadcast",
-                        event: "stop-typing",
-                        payload: { userId: session.user.id },
-                      });
-                    }, TYPING_TIMEOUT);
-                  }
-                }}
-                placeholder={`Message ${active.displayName}`}
-                className="flex-1 min-w-0 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || sending}
-                className="rounded-xl bg-primary text-primary-foreground px-4 md:px-5 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
-              >
-                {sending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setEmojiPickerFor(emojiPickerFor === "__composer__" ? null : "__composer__")}
+                  className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0"
+                  title="Emoji"
+                >
+                  <Smile className="w-[18px] h-[18px] text-muted" />
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!input.trim() || sending}
+                  className="rounded-full bg-emerald-500 text-white w-9 h-9 flex items-center justify-center hover:bg-emerald-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                  title="Send"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {emojiPickerFor === "__composer__" && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setEmojiPickerFor(null)} />
+                  <div className="absolute bottom-24 md:bottom-20 right-4 md:right-6 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px]">
+                    <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                      {FULL_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setInput((v) => v + emoji);
+                            setEmojiPickerFor(null);
+                          }}
+                          className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted">
-          <div className="text-center">
-            <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p>Select a conversation or start a new one</p>
+        /* ---- No active conversation ---- */
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center max-w-sm px-6">
+            <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-5">
+              <MessageSquare className="w-10 h-10 text-emerald-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-1.5 tracking-tight">
+              Your conversations
+            </h2>
+            <p className="text-[13.5px] text-muted leading-relaxed mb-5">
+              Select a conversation from the sidebar, or start a new one to begin.
+            </p>
+            <button
+              onClick={() => setShowNewDm(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition"
+            >
+              <Plus className="w-4 h-4" />
+              New conversation
+            </button>
           </div>
         </div>
       )}
 
+      {/* ===================== MODALS ===================== */}
+
+      {/* Group call */}
       {showGroupCall && activeId && active && (
         <GroupCall
           conversationId={activeId}
@@ -1347,6 +1476,7 @@ export default function ChatPage() {
         />
       )}
 
+      {/* AI panel */}
       {showAIPanel && activeId && (
         <AIPanel
           conversationId={activeId}
@@ -1355,6 +1485,7 @@ export default function ChatPage() {
         />
       )}
 
+      {/* Thread */}
       {openThread && activeId && (
         <ThreadPanel
           conversationId={activeId}
@@ -1364,6 +1495,46 @@ export default function ChatPage() {
         />
       )}
 
+      {/* ---------- FULL-SCREEN IMAGE PREVIEW ---------- */}
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setPreviewImage(null)}
+          >
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <a
+              href={previewImage}
+              download
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-4 right-16 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
+              aria-label="Download"
+            >
+              <Download className="w-5 h-5" />
+            </a>
+            <motion.img
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              src={previewImage}
+              alt="Preview"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ---------- PINNED LIST ---------- */}
       {showPinnedList && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1374,43 +1545,32 @@ export default function ChatPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold text-[14px] flex items-center gap-2">
                 <Pin className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 Pinned messages
               </h3>
               <button
                 onClick={() => setShowPinnedList(false)}
-                className="p-1 rounded-lg hover:bg-foreground/10 transition"
+                className="p-1 rounded-lg hover:bg-foreground/[0.06] transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="flex-1 overflow-y-auto min-h-0">
               {pinnedMessages.length === 0 ? (
-                <div className="text-center py-12 text-muted text-sm">
-                  No pinned messages yet
-                </div>
+                <div className="text-center py-12 text-muted text-sm">No pinned messages yet</div>
               ) : (
                 pinnedMessages.map((pin) => (
-                  <div
-                    key={pin.id}
-                    className="p-4 border-b border-border/40 hover:bg-foreground/5 transition group"
-                  >
+                  <div key={pin.id} className="p-4 border-b border-border/40 hover:bg-foreground/[0.03] transition">
                     <div className="flex items-start gap-3">
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => scrollToMessage(pin.id)}
-                      >
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => scrollToMessage(pin.id)}>
                         <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-xs font-semibold">
-                            {pin.user?.name || "User"}
-                          </span>
+                          <span className="text-[12px] font-semibold">{pin.user?.name || "User"}</span>
                           <span className="text-[10px] text-muted">
                             {new Date(pin.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-foreground/80 line-clamp-2">
+                        <p className="text-[13px] text-foreground/80 line-clamp-2">
                           {pin.content || "📎 Attachment"}
                         </p>
                       </div>
@@ -1430,6 +1590,7 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* ---------- ACTION SHEET ---------- */}
       <AnimatePresence>
         {actionSheetMsg && (
           <div
@@ -1449,10 +1610,8 @@ export default function ChatPage() {
               </div>
 
               <div className="px-5 py-4 border-b border-border">
-                <p className="text-xs text-muted mb-1">
-                  {actionSheetMsg.user?.name || "User"}
-                </p>
-                <p className="text-sm text-foreground line-clamp-2">
+                <p className="text-[11px] text-muted mb-1">{actionSheetMsg.user?.name || "User"}</p>
+                <p className="text-[13px] text-foreground line-clamp-2">
                   {actionSheetMsg.content || "📎 Attachment"}
                 </p>
               </div>
@@ -1466,7 +1625,7 @@ export default function ChatPage() {
                         toggleReaction(actionSheetMsg.id, emoji);
                         setActionSheetMsg(null);
                       }}
-                      className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition text-2xl active:scale-95"
+                      className="flex-1 h-12 rounded-xl hover:bg-foreground/[0.06] transition text-2xl active:scale-95"
                     >
                       {emoji}
                     </button>
@@ -1476,7 +1635,7 @@ export default function ChatPage() {
                       setEmojiPickerFor(actionSheetMsg.id);
                       setActionSheetMsg(null);
                     }}
-                    className="flex-1 h-12 rounded-xl hover:bg-foreground/10 transition flex items-center justify-center active:scale-95"
+                    className="flex-1 h-12 rounded-xl hover:bg-foreground/[0.06] transition flex items-center justify-center active:scale-95"
                   >
                     <Plus className="w-5 h-5 text-muted" />
                   </button>
@@ -1486,10 +1645,21 @@ export default function ChatPage() {
               <div className="p-2">
                 <button
                   onClick={() => openTaskFromMessage(actionSheetMsg)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left"
                 >
-                  <CheckSquare className="w-5 h-5 text-green-500" />
-                  <span className="text-sm font-medium">Turn into task</span>
+                  <CheckSquare className="w-5 h-5 text-emerald-500" />
+                  <span className="text-[13.5px] font-medium">Turn into task</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    copyMessage(actionSheetMsg.content);
+                    setActionSheetMsg(null);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left"
+                >
+                  <Copy className="w-5 h-5 text-muted" />
+                  <span className="text-[13.5px] font-medium">Copy text</span>
                 </button>
 
                 <button
@@ -1497,15 +1667,15 @@ export default function ChatPage() {
                     setOpenThread(actionSheetMsg);
                     setActionSheetMsg(null);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left"
                 >
                   <MessageCircle className="w-5 h-5 text-muted" />
-                  <span className="text-sm font-medium">Reply in thread</span>
+                  <span className="text-[13.5px] font-medium">Reply in thread</span>
                 </button>
 
                 <button
                   onClick={() => togglePin(actionSheetMsg)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left"
                 >
                   <Pin
                     className={`w-5 h-5 ${
@@ -1514,33 +1684,28 @@ export default function ChatPage() {
                         : "text-muted"
                     }`}
                   />
-                  <span className="text-sm font-medium">
-                    {pinnedMessages.some((p) => p.id === actionSheetMsg.id)
-                      ? "Unpin message"
-                      : "Pin message"}
+                  <span className="text-[13.5px] font-medium">
+                    {pinnedMessages.some((p) => p.id === actionSheetMsg.id) ? "Unpin message" : "Pin message"}
                   </span>
                 </button>
 
-                {actionSheetMsg.userId === session?.user?.id &&
-                  actionSheetMsg.content && (
-                    <button
-                      onClick={() => startEditing(actionSheetMsg)}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition text-left"
-                    >
-                      <Pencil className="w-5 h-5 text-emerald-500" />
-                      <span className="text-sm font-medium">Edit message</span>
-                    </button>
-                  )}
+                {actionSheetMsg.userId === session?.user?.id && actionSheetMsg.content && (
+                  <button
+                    onClick={() => startEditing(actionSheetMsg)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left"
+                  >
+                    <Pencil className="w-5 h-5 text-emerald-500" />
+                    <span className="text-[13.5px] font-medium">Edit message</span>
+                  </button>
+                )}
 
                 {actionSheetMsg.userId === session?.user?.id && (
                   <button
                     onClick={() => deleteMessage(actionSheetMsg.id)}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition text-left"
                   >
-                    <X className="w-5 h-5 text-red-500" />
-                    <span className="text-sm font-medium text-red-500">
-                      Delete message
-                    </span>
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                    <span className="text-[13.5px] font-medium text-red-500">Delete message</span>
                   </button>
                 )}
               </div>
@@ -1548,7 +1713,7 @@ export default function ChatPage() {
               <div className="px-3 pt-2 lg:hidden">
                 <button
                   onClick={() => setActionSheetMsg(null)}
-                  className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition text-sm font-medium"
+                  className="w-full py-3 rounded-xl bg-foreground/[0.06] hover:bg-foreground/10 transition text-sm font-medium"
                 >
                   Cancel
                 </button>
@@ -1558,6 +1723,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
+      {/* ---------- TASK MODAL ---------- */}
       <AnimatePresence>
         {taskFromMessage && (
           <div
@@ -1577,79 +1743,62 @@ export default function ChatPage() {
               </div>
 
               <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4 text-green-500" />
+                <h3 className="font-semibold text-[14px] flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-emerald-500" />
                   Create task
                 </h3>
                 <button
                   onClick={() => setTaskFromMessage(null)}
                   disabled={creatingTask}
-                  className="p-1.5 rounded-lg hover:bg-foreground/10 transition disabled:opacity-50"
+                  className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition disabled:opacity-50"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                <div className="rounded-xl bg-foreground/5 border border-border p-3">
-                  <p className="text-[10px] text-muted mb-1 uppercase tracking-wider">
-                    From message
-                  </p>
-                  <p className="text-xs text-foreground/80 line-clamp-2">
+                <div className="rounded-xl bg-foreground/[0.04] border border-border p-3">
+                  <p className="text-[10px] text-muted mb-1 uppercase tracking-wider">From message</p>
+                  <p className="text-[12px] text-foreground/80 line-clamp-2">
                     {taskFromMessage.content || "📎 Attachment"}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground/80">
-                    Title
-                  </label>
+                  <label className="block text-[13px] font-medium mb-2 text-foreground/80">Title</label>
                   <input
                     type="text"
                     value={taskForm.title}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, title: e.target.value })
-                    }
+                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
                     autoFocus
-                    className="w-full rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-3 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                     placeholder="What needs to be done?"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground/80">
-                    Description
-                  </label>
+                  <label className="block text-[13px] font-medium mb-2 text-foreground/80">Description</label>
                   <textarea
                     value={taskForm.description}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, description: e.target.value })
-                    }
+                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
                     rows={3}
-                    className="w-full rounded-xl border border-border bg-foreground/5 px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
-                    placeholder="Add details..."
+                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-3 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none"
+                    placeholder="Add details…"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground/80">
-                    Priority
-                  </label>
+                  <label className="block text-[13px] font-medium mb-2 text-foreground/80">Priority</label>
                   <div className="grid grid-cols-4 gap-2">
                     {PRIORITIES.map((p) => (
                       <button
                         key={p.value}
                         type="button"
-                        onClick={() =>
-                          setTaskForm({
-                            ...taskForm,
-                            priority: p.value as any,
-                          })
-                        }
-                        className={`py-2.5 rounded-xl border text-xs font-medium transition ${
+                        onClick={() => setTaskForm({ ...taskForm, priority: p.value as any })}
+                        className={`py-2.5 rounded-xl border text-[12px] font-medium transition ${
                           taskForm.priority === p.value
-                            ? "border-green-500/50 bg-green-500/10 " + p.color
-                            : "border-border bg-foreground/5 hover:bg-foreground/10 text-muted"
+                            ? "border-emerald-500/50 bg-emerald-500/10 " + p.color
+                            : "border-border bg-foreground/[0.04] hover:bg-foreground/[0.08] text-muted"
                         }`}
                       >
                         {p.label}
@@ -1659,18 +1808,14 @@ export default function ChatPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground/80">
-                    Due date (optional)
-                  </label>
+                  <label className="block text-[13px] font-medium mb-2 text-foreground/80">Due date (optional)</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
                     <input
                       type="date"
                       value={taskForm.dueDate}
-                      onChange={(e) =>
-                        setTaskForm({ ...taskForm, dueDate: e.target.value })
-                      }
-                      className="w-full rounded-xl border border-border bg-foreground/5 pl-10 pr-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                      onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                      className="w-full rounded-xl border border-border bg-foreground/[0.04] pl-10 pr-4 py-3 text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                     />
                   </div>
                 </div>
@@ -1680,19 +1825,19 @@ export default function ChatPage() {
                 <button
                   onClick={() => setTaskFromMessage(null)}
                   disabled={creatingTask}
-                  className="flex-1 py-3 rounded-xl border border-border hover:bg-foreground/5 transition text-sm font-medium disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl border border-border hover:bg-foreground/[0.04] transition text-[13px] font-medium disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={createTaskFromMessage}
                   disabled={creatingTask || !taskForm.title.trim()}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 transition text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition text-[13px] font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {creatingTask ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
+                      Creating…
                     </>
                   ) : (
                     "Create task"
@@ -1704,6 +1849,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
+      {/* ---------- NEW DM MODAL ---------- */}
       {showNewDm && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1720,10 +1866,8 @@ export default function ChatPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold">
-                {selectedUsers.length > 1
-                  ? `New group (${selectedUsers.length})`
-                  : "New Message"}
+              <h3 className="font-semibold text-[14px]">
+                {selectedUsers.length > 1 ? `New group (${selectedUsers.length})` : "New message"}
               </h3>
               <button
                 type="button"
@@ -1735,7 +1879,7 @@ export default function ChatPage() {
                   setSearchResults([]);
                   setGroupName("");
                 }}
-                className="p-1 rounded-lg hover:bg-foreground/10 transition"
+                className="p-1 rounded-lg hover:bg-foreground/[0.06] transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1746,11 +1890,9 @@ export default function ChatPage() {
                 {selectedUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-xs"
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11.5px]"
                   >
-                    <span className="truncate max-w-[100px]">
-                      {u.name || u.email}
-                    </span>
+                    <span className="truncate max-w-[100px]">{u.name || u.email}</span>
                     <button onClick={() => toggleUser(u)}>
                       <X className="w-3 h-3" />
                     </button>
@@ -1766,7 +1908,7 @@ export default function ChatPage() {
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="Group name (optional)"
-                  className="w-full rounded-lg border border-border bg-foreground/5 px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  className="w-full rounded-lg border border-border bg-foreground/[0.04] px-3 py-2 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                 />
               </div>
             )}
@@ -1778,9 +1920,9 @@ export default function ChatPage() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name or email..."
+                  placeholder="Search by name or email…"
                   autoFocus
-                  className="w-full rounded-xl border border-border bg-foreground/5 pl-10 pr-4 py-2.5 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  className="w-full rounded-xl border border-border bg-foreground/[0.04] pl-10 pr-4 py-2.5 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                 />
               </div>
             </div>
@@ -1791,7 +1933,7 @@ export default function ChatPage() {
                   <Loader2 className="w-5 h-5 animate-spin text-muted" />
                 </div>
               ) : searchResults.length === 0 ? (
-                <div className="text-center py-8 px-4 text-muted text-sm">
+                <div className="text-center py-8 px-4 text-muted text-[13px]">
                   {search ? "No users found" : "Start typing to search"}
                 </div>
               ) : (
@@ -1807,28 +1949,20 @@ export default function ChatPage() {
                         e.stopPropagation();
                         toggleUser(user);
                       }}
-                      className={`w-full text-left p-3 hover:bg-foreground/5 transition flex items-center gap-3 border-b border-border/40 cursor-pointer select-none ${
+                      className={`w-full text-left p-3 hover:bg-foreground/[0.04] transition flex items-center gap-3 border-b border-border/40 cursor-pointer select-none ${
                         selected ? "bg-emerald-500/10" : ""
                       }`}
                     >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-semibold flex-shrink-0 overflow-hidden text-white pointer-events-none">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[13px] font-semibold flex-shrink-0 overflow-hidden text-white pointer-events-none">
                         {user.image ? (
-                          <img
-                            src={user.image}
-                            alt={user.name || "user"}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={user.image} alt="" className="w-full h-full object-cover" />
                         ) : (
                           user.name?.[0]?.toUpperCase() || "?"
                         )}
                       </div>
                       <div className="flex-1 min-w-0 pointer-events-none">
-                        <p className="text-sm font-medium truncate">
-                          {user.name || user.email}
-                        </p>
-                        <p className="text-xs text-muted truncate">
-                          {user.email}
-                        </p>
+                        <p className="text-[13px] font-medium truncate">{user.name || user.email}</p>
+                        <p className="text-[11.5px] text-muted truncate">{user.email}</p>
                       </div>
                       {selected && (
                         <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
@@ -1845,13 +1979,11 @@ export default function ChatPage() {
               <div className="p-4 border-t border-border">
                 <button
                   onClick={startConversation}
-                  className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-semibold hover:opacity-90 transition"
+                  className="w-full rounded-xl bg-emerald-500 text-white py-3 font-semibold text-[13px] hover:bg-emerald-600 transition"
                 >
                   {selectedUsers.length > 1
                     ? `Create group with ${selectedUsers.length} people`
-                    : `Chat with ${
-                        selectedUsers[0].name || selectedUsers[0].email
-                      }`}
+                    : `Chat with ${selectedUsers[0].name || selectedUsers[0].email}`}
                 </button>
               </div>
             )}
@@ -1859,6 +1991,7 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* ---------- SEARCH MODAL ---------- */}
       {showSearch && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
@@ -1878,9 +2011,9 @@ export default function ChatPage() {
                 type="text"
                 value={msgSearch}
                 onChange={(e) => setMsgSearch(e.target.value)}
-                placeholder="Search messages..."
+                placeholder="Search messages…"
                 autoFocus
-                className="flex-1 bg-transparent text-foreground placeholder:text-muted focus:outline-none text-sm"
+                className="flex-1 bg-transparent text-foreground placeholder:text-muted focus:outline-none text-[14px]"
               />
               <button
                 type="button"
@@ -1889,7 +2022,7 @@ export default function ChatPage() {
                   setMsgSearch("");
                   setSearchMsgResults([]);
                 }}
-                className="p-1 rounded-lg hover:bg-foreground/10 transition flex-shrink-0"
+                className="p-1 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1897,7 +2030,7 @@ export default function ChatPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0">
               {msgSearch.length < 2 ? (
-                <div className="text-center py-8 px-4 text-muted text-sm">
+                <div className="text-center py-8 px-4 text-muted text-[13px]">
                   Type at least 2 characters to search
                 </div>
               ) : searchingMsgs ? (
@@ -1905,7 +2038,7 @@ export default function ChatPage() {
                   <Loader2 className="w-5 h-5 animate-spin text-muted" />
                 </div>
               ) : searchMsgResults.length === 0 ? (
-                <div className="text-center py-8 px-4 text-muted text-sm">
+                <div className="text-center py-8 px-4 text-muted text-[13px]">
                   No messages found for &quot;{msgSearch}&quot;
                 </div>
               ) : (
@@ -1917,41 +2050,30 @@ export default function ChatPage() {
                       e.stopPropagation();
                       const el = document.getElementById(`msg-${msg.id}`);
                       if (el) {
-                        el.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                        el.classList.add(
-                          "ring-2",
-                          "ring-emerald-500",
-                          "rounded-lg"
-                        );
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        el.classList.add("ring-2", "ring-emerald-500", "rounded-lg");
                         setTimeout(() => {
-                          el.classList.remove(
-                            "ring-2",
-                            "ring-emerald-500",
-                            "rounded-lg"
-                          );
+                          el.classList.remove("ring-2", "ring-emerald-500", "rounded-lg");
                         }, 2000);
                       }
                       setShowSearch(false);
                       setMsgSearch("");
                       setSearchMsgResults([]);
                     }}
-                    className="w-full text-left p-3 hover:bg-foreground/5 transition border-b border-border/40 cursor-pointer select-none"
+                    className="w-full text-left p-3 hover:bg-foreground/[0.04] transition border-b border-border/40 cursor-pointer select-none"
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[10px] font-semibold flex-shrink-0 text-white pointer-events-none">
                         {msg.user?.name?.[0]?.toUpperCase() || "?"}
                       </div>
-                      <span className="text-xs font-medium truncate pointer-events-none">
+                      <span className="text-[11.5px] font-medium truncate pointer-events-none">
                         {msg.user?.name || "User"}
                       </span>
                       <span className="text-[10px] text-muted pointer-events-none">
                         {new Date(msg.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/80 line-clamp-2 pointer-events-none">
+                    <p className="text-[13px] text-foreground/80 line-clamp-2 pointer-events-none">
                       {msg.content}
                     </p>
                   </div>
