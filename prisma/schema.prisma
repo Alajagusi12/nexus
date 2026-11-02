@@ -221,11 +221,18 @@ model Task {
   order           Int        @default(0)
   createdAt       DateTime   @default(now())
 
+  // 👇 ADD THESE EXACT 3 LINES 👇
+  labels          String[]
+  subtasks        Json?
+  comments        Json?
+  // 👆 ------------------------ 👆
+
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creator     User      @relation("TaskCreator", fields: [creatorId], references: [id])
   assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
 
   @@index([workspaceId])
+
 }
 
 enum TaskStatus {

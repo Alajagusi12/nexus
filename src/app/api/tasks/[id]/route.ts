@@ -73,6 +73,12 @@ export async function PATCH(
       data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
     }
     if (body.assigneeId !== undefined) data.assigneeId = body.assigneeId;
+    
+    // 👇 ADDED NEW FIELDS HERE 👇
+    if (body.labels !== undefined) data.labels = body.labels;
+    if (body.subtasks !== undefined) data.subtasks = body.subtasks;
+    if (body.comments !== undefined) data.comments = body.comments;
+    // 👆 ---------------------- 👆
 
     const task = await prisma.task.update({
       where: { id },

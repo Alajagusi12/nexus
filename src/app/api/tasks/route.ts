@@ -14,11 +14,11 @@ export async function GET() {
 
     const tasks = await prisma.task.findMany({
       where: { workspaceId: workspace.id },
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       include: {
         creator: { select: { id: true, name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
       },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(tasks);
@@ -35,11 +35,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { title, description, priority, dueDate, assigneeId } =
-      await req.json();
+    // 👇 THIS WAS MISSING 👇
+    const body = await req.json();
+    const { title, description, priority, dueDate, assigneeId, labels, subtasks, comments } = body;
 
     if (!title?.trim()) {
-      return NextResponse.json({ error: "Title required" }, { status: 400 });
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
     const workspace = await getCurrentWorkspace(session.user.id);
@@ -53,6 +54,11 @@ export async function POST(req: Request) {
         workspaceId: workspace.id,
         creatorId: session.user.id,
         assigneeId: assigneeId || null,
+        
+        // 👇 ADDED NEW FIELDS HERE 👇
+        labels: labels || [],
+        subtasks: subtasks || [],
+        comments: comments || [],
       },
       include: {
         creator: { select: { id: true, name: true, email: true } },
@@ -63,6 +69,6 @@ export async function POST(req: Request) {
     return NextResponse.json(task, { status: 201 });
   } catch (err) {
     console.error("POST task error:", err);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
   }
 }
