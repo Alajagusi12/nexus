@@ -9,36 +9,10 @@ import { ThreadPanel } from "@/components/thread-panel";
 import { AIPanel } from "@/components/ai-panel";
 import { GroupCall } from "@/components/group-call";
 import {
-  Send,
-  MessageSquare,
-  Loader2,
-  Search,
-  X,
-  Plus,
-  Phone,
-  Video,
-  Paperclip,
-  Smile,
-  Check,
-  CheckCheck,
-  Clock,
-  FileText,
-  Download,
-  Users,
-  Pencil,
-  MessageCircle,
-  Pin,
-  CheckSquare,
-  Calendar,
-  Sparkles,
-  Trash2,
-  Copy,
-  MoreHorizontal,
-  BellOff,
-  ArrowDown,
-  Mic,
-  Forward,
-  Mail,
+  Send, MessageSquare, Loader2, Search, X, Plus, Phone, Video, Paperclip, 
+  Smile, Check, CheckCheck, Clock, FileText, Download, Users, Pencil, 
+  MessageCircle, Pin, CheckSquare, Calendar, Sparkles, Trash2, Copy, 
+  MoreHorizontal, BellOff, ArrowDown, Mic, Forward, Mail, AtSign
 } from "lucide-react";
 
 type OtherUser = {
@@ -58,11 +32,7 @@ type Conversation = {
   memberCount: number;
   otherUser: OtherUser | null;
   members: OtherUser[];
-  lastMessage: {
-    content: string;
-    createdAt: string;
-    userName: string | null;
-  } | null;
+  lastMessage: { content: string; createdAt: string; userName: string | null; } | null;
   updatedAt: string;
 };
 
@@ -82,23 +52,16 @@ type Message = {
   _count?: { replies: number };
   replyCount?: number;
   pending?: boolean;
-  user?: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-  };
+  user?: { id: string; name: string | null; email: string; image: string | null; };
 };
 
 const QUICK_EMOJIS = ["❤️", "👍", "🔥", "😂", "🎉"];
 const FULL_EMOJIS = [
-  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎",
-  "👍", "👎", "👏", "🙌", "🤝", "🙏", "💪", "✌️", "🤞",
-  "🔥", "✨", "⭐", "🌟", "💫", "⚡", "💥", "🎉", "🎊",
-  "😂", "🤣", "😊", "😁", "😍", "🥰", "😘", "😎", "🤔",
-  "😅", "😉", "😢", "😭", "😡", "🤯", "🥳", "😴", "🤗",
-  "🚀", "💡", "✅", "❌", "⚠️", "❓", "❗", "💯", "👀",
-  "🍕", "☕", "🎯", "🏆", "📌", "📎", "💼", "📝",
+  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "👍", "👎", "👏", "🙌", 
+  "🤝", "🙏", "💪", "✌️", "🤞", "🔥", "✨", "⭐", "🌟", "💫", "⚡", "💥", "🎉", 
+  "🎊", "😂", "🤣", "😊", "😁", "😍", "🥰", "😘", "😎", "🤔", "😅", "😉", "😢", 
+  "😭", "😡", "🤯", "🥳", "😴", "🤗", "🚀", "💡", "✅", "❌", "⚠️", "❓", "❗", 
+  "💯", "👀", "🍕", "☕", "🎯", "🏆", "📌", "📎", "💼", "📝"
 ];
 const TYPING_TIMEOUT = 2000;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -117,15 +80,12 @@ function parseReactions(reactions: string | null | undefined): Record<string, st
   try {
     const parsed = JSON.parse(reactions);
     return typeof parsed === "object" && parsed !== null ? parsed : {};
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
 function getPresence(user: OtherUser | null | undefined) {
   if (!user?.lastSeenAt) return { isOnline: false, label: "Offline" };
-  const lastSeen = new Date(user.lastSeenAt).getTime();
-  const diffSec = Math.floor((Date.now() - lastSeen) / 1000);
+  const diffSec = Math.floor((Date.now() - new Date(user.lastSeenAt).getTime()) / 1000);
   if (diffSec < 60) return { isOnline: true, label: "Online" };
   if (diffSec < 3600) return { isOnline: false, label: `Active ${Math.floor(diffSec / 60)}m ago` };
   if (diffSec < 86400) return { isOnline: false, label: `Active ${Math.floor(diffSec / 3600)}h ago` };
@@ -140,9 +100,7 @@ function formatDayLabel(iso: string) {
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return d.toLocaleDateString(undefined, { weekday: "long" });
-  return d.toLocaleDateString(undefined, {
-    weekday: "short", month: "short", day: "numeric", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
-  });
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
 }
 
 function sameDay(a: string, b: string) {
@@ -165,10 +123,13 @@ function renderContent(text: string) {
   return parts.map((part, i) => {
     if (urlRegex.test(part)) {
       return (
-        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 underline underline-offset-2 break-all" onClick={(e) => e.stopPropagation()}>
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 underline underline-offset-2 break-all font-medium" onClick={(e) => e.stopPropagation()}>
           {part}
         </a>
       );
+    }
+    if (part.startsWith("@")) {
+      return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-1 rounded">{part}</span>;
     }
     return <span key={i}>{part}</span>;
   });
@@ -209,7 +170,6 @@ export default function ChatPage() {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   
-  // Advanced State
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
@@ -217,13 +177,11 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+
   const [taskFromMessage, setTaskFromMessage] = useState<Message | null>(null);
-  const [taskForm, setTaskForm] = useState({
-    title: "",
-    description: "",
-    priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
-    dueDate: "",
-  });
+  const [taskForm, setTaskForm] = useState({ title: "", description: "", priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT", dueDate: "" });
   const [creatingTask, setCreatingTask] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -236,13 +194,26 @@ export default function ChatPage() {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggeredRef = useRef(false);
 
-  // Auto-grow textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [input]);
+
+  useEffect(() => {
+    function handleGlobalKey(e: KeyboardEvent) {
+      if (e.key === "/" && !showNewDm && !showSearch && !actionSheetMsg && !taskFromMessage && !forwardMsg && !previewImage) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+          e.preventDefault();
+          textareaRef.current?.focus();
+        }
+      }
+    }
+    window.addEventListener("keydown", handleGlobalKey);
+    return () => window.removeEventListener("keydown", handleGlobalKey);
+  }, [showNewDm, showSearch, actionSheetMsg, taskFromMessage, forwardMsg, previewImage]);
 
   async function loadConversations() {
     try {
@@ -251,44 +222,26 @@ export default function ChatPage() {
       if (Array.isArray(data)) {
         setConversations(data);
         const saved = sessionStorage.getItem("lastActiveConversation");
-        if (saved && data.some((c: Conversation) => c.id === saved)) {
-          setActiveId(saved);
-        } else if (data.length > 0) {
-          setActiveId((prev) => prev || data[0].id);
-        }
+        if (saved && data.some((c: Conversation) => c.id === saved)) setActiveId(saved);
+        else if (data.length > 0) setActiveId((prev) => prev || data[0].id);
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingConvos(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoadingConvos(false); }
   }
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
+  useEffect(() => { loadConversations(); }, []);
 
   useEffect(() => {
     if (activeId) {
       sessionStorage.setItem("lastActiveConversation", activeId);
-      setOpenThread(null);
-      setShowPinnedList(false);
-      setShowAIPanel(false);
-      setShowGroupCall(false);
-      setShowHeaderMenu(false);
-      loadPins();
+      setOpenThread(null); setShowPinnedList(false); setShowAIPanel(false); setShowGroupCall(false); setShowHeaderMenu(false); loadPins();
       setUnreadIds(prev => { const next = new Set(prev); next.delete(activeId); return next; });
-    } else {
-      setPinnedMessages([]);
-    }
+    } else { setPinnedMessages([]); }
   }, [activeId]);
 
   useEffect(() => {
     if (!activeId) return;
-    setLoadingMessages(true);
-    setMessages([]);
-    setOtherUserTyping(false);
-    setShowScrollDown(false);
+    setLoadingMessages(true); setMessages([]); setOtherUserTyping(false); setShowScrollDown(false);
 
     fetch(`/api/conversations/${activeId}/messages`, { cache: "no-store" })
       .then((res) => res.json())
@@ -300,7 +253,6 @@ export default function ChatPage() {
       .catch(() => setLoadingMessages(false));
   }, [activeId]);
 
-  // Global Escape key
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
@@ -313,17 +265,15 @@ export default function ChatPage() {
       else if (showPinnedList) setShowPinnedList(false);
       else if (emojiPickerFor) setEmojiPickerFor(null);
       else if (showHeaderMenu) setShowHeaderMenu(false);
+      else if (showMentions) setShowMentions(false);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [previewImage, actionSheetMsg, taskFromMessage, forwardMsg, showNewDm, showSearch, showPinnedList, emojiPickerFor, showHeaderMenu]);
+  }, [previewImage, actionSheetMsg, taskFromMessage, forwardMsg, showNewDm, showSearch, showPinnedList, emojiPickerFor, showHeaderMenu, showMentions]);
 
-  // Supabase Realtime
   useEffect(() => {
     if (!activeId) return;
-    const channel = supabase
-      .channel(`conversation-${activeId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "Message", filter: `conversationId=eq.${activeId}` }, (payload: any) => {
+    const channel = supabase.channel(`conversation-${activeId}`).on("postgres_changes", { event: "*", schema: "public", table: "Message", filter: `conversationId=eq.${activeId}` }, (payload: any) => {
           if (payload.eventType === "INSERT") {
             const newMsg = payload.new;
             if (newMsg.parentId) {
@@ -336,15 +286,11 @@ export default function ChatPage() {
               return [...withoutOptimistic, { ...newMsg, replyCount: 0, pending: false }];
             });
             if (newMsg.userId !== session?.user?.id) {
-              if (activeId !== newMsg.conversationId) {
-                setUnreadIds((prev) => new Set(prev).add(newMsg.conversationId));
-              } else {
+              if (activeId !== newMsg.conversationId) setUnreadIds((prev) => new Set(prev).add(newMsg.conversationId));
+              else {
                 const el = scrollContainerRef.current;
-                if (el && el.scrollHeight - el.scrollTop - el.clientHeight > 150) {
-                  setShowScrollDown(true);
-                } else {
-                  setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" }), 50);
-                }
+                if (el && el.scrollHeight - el.scrollTop - el.clientHeight > 150) setShowScrollDown(true);
+                else setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" }), 50);
               }
             }
           } else if (payload.eventType === "UPDATE") {
@@ -353,44 +299,36 @@ export default function ChatPage() {
           } else if (payload.eventType === "DELETE") {
             setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
           }
-        }
-      ).subscribe();
+        }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [activeId, session?.user?.id, prefersReducedMotion]);
 
-  // Typing indicators
   useEffect(() => {
     if (!activeId || !session?.user?.id) return;
     const channel = supabase.channel(`typing-${activeId}`);
-    channel
-      .on("broadcast", { event: "typing" }, (payload: any) => {
+    channel.on("broadcast", { event: "typing" }, (payload: any) => {
         if (payload.payload.userId === session.user.id) return;
         if (payload.payload.userName) {
           setOtherUserTyping(true);
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
           typingTimeoutRef.current = setTimeout(() => setOtherUserTyping(false), TYPING_TIMEOUT);
         }
-      })
-      .on("broadcast", { event: "stop-typing" }, (payload: any) => {
+      }).on("broadcast", { event: "stop-typing" }, (payload: any) => {
         if (payload.payload.userId === session.user.id) return;
         setOtherUserTyping(false);
-      })
-      .subscribe();
+      }).subscribe();
     typingChannelRef.current = channel;
     return () => { supabase.removeChannel(channel); typingChannelRef.current = null; setOtherUserTyping(false); };
   }, [activeId, session?.user?.id]);
 
   useEffect(() => {
-    if (messages.length > 0 || otherUserTyping) {
-      bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
-    }
+    if (messages.length > 0 || otherUserTyping) bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
   }, [messages, otherUserTyping, prefersReducedMotion]);
 
   function handleScroll() {
     const el = scrollContainerRef.current;
     if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
-    setShowScrollDown(!nearBottom);
+    setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 150);
   }
 
   function scrollToBottom() {
@@ -398,7 +336,6 @@ export default function ChatPage() {
     setShowScrollDown(false);
   }
 
-  // Search messages
   useEffect(() => {
     if (!showSearch || !activeId) return;
     if (msgSearch.length < 2) { setSearchMsgResults([]); return; }
@@ -412,7 +349,6 @@ export default function ChatPage() {
     return () => clearTimeout(t);
   }, [msgSearch, showSearch, activeId]);
 
-  // Search users
   useEffect(() => {
     if (!showNewDm) return;
     if (search.length < 1) { setSearchResults([]); return; }
@@ -446,18 +382,13 @@ export default function ChatPage() {
     if (selectedUsers.length === 0) return;
     try {
       const res = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          otherUserIds: selectedUsers.map((u) => u.id),
-          name: selectedUsers.length > 1 ? groupName || "New group" : null,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otherUserIds: selectedUsers.map((u) => u.id), name: selectedUsers.length > 1 ? groupName || "New group" : null }),
       });
       const data = await res.json();
       if (data.id) {
         setShowNewDm(false); setSearch(""); setSearchResults([]); setSelectedUsers([]); setGroupName("");
-        await loadConversations();
-        setActiveId(data.id);
+        await loadConversations(); setActiveId(data.id);
         toast.success(selectedUsers.length > 1 ? "Group created" : "Conversation started");
       }
     } catch (err) { console.error(err); toast.error("Failed to start conversation"); }
@@ -469,8 +400,7 @@ export default function ChatPage() {
     if (active.isGroup) { setShowGroupCall(true); return; }
     try {
       const res = await fetch("/api/calls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: activeId, callType }),
       });
       const data = await res.json();
@@ -492,12 +422,11 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, optimistic]);
     setInput("");
+    setShowMentions(false);
 
     try {
       await fetch(`/api/conversations/${activeId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: trimmed }),
       });
       if (typingChannelRef.current && session.user.id) {
         isCurrentlyTypingRef.current = false;
@@ -507,40 +436,57 @@ export default function ChatPage() {
     } catch (err) {
       console.error(err); toast.error("Failed to send");
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-    } finally {
-      setSending(false);
+    } finally { setSending(false); }
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    setInput(val);
+    const lastWord = val.split(" ").pop() || "";
+    if (lastWord.startsWith("@") && lastWord.length > 0) {
+      setShowMentions(true);
+      setMentionFilter(lastWord.slice(1).toLowerCase());
+    } else {
+      setShowMentions(false);
+    }
+
+    if (typingChannelRef.current && session?.user?.id && activeId) {
+      if (!isCurrentlyTypingRef.current) {
+        isCurrentlyTypingRef.current = true;
+        typingChannelRef.current.send({ type: "broadcast", event: "typing", payload: { userId: session.user.id, userName: session.user.name || "Someone" } });
+      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        isCurrentlyTypingRef.current = false;
+        typingChannelRef.current?.send({ type: "broadcast", event: "stop-typing", payload: { userId: session.user.id } });
+      }, TYPING_TIMEOUT);
     }
   }
 
-  // Voice Note Recording
+  function insertMention(name: string) {
+    const words = input.split(" ");
+    words.pop();
+    setInput([...words, `@${name} `].join(" "));
+    setShowMentions(false);
+    textareaRef.current?.focus();
+  }
+
   async function toggleRecording() {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      return;
-    }
+    if (isRecording) { mediaRecorderRef.current?.stop(); setIsRecording(false); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, { type: "audio/webm" });
-        stream.getTracks().forEach(track => track.stop()); // Stop mic
+        stream.getTracks().forEach(track => track.stop());
         await uploadAndSendFile(file);
       };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      toast.error("Microphone access denied or unavailable.");
-    }
+      mediaRecorder.start(); setIsRecording(true);
+    } catch (err) { toast.error("Microphone access denied."); }
   }
 
   async function uploadAndSendFile(file: File) {
@@ -551,8 +497,7 @@ export default function ChatPage() {
       const result = await uploadFile(file, "attachments", activeId);
       if (result.error) { toast.error("Upload failed: " + result.error); return; }
       await fetch(`/api/conversations/${activeId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: "", fileUrl: result.url, fileType: file.type, fileName: file.name }),
       });
       loadConversations();
@@ -585,9 +530,7 @@ export default function ChatPage() {
     }));
     try {
       const res = await fetch(`/api/conversations/${activeId}/messages`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId, emoji }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId, emoji }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -616,21 +559,12 @@ export default function ChatPage() {
     if (!forwardMsg) return;
     try {
       await fetch(`/api/conversations/${targetConversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          content: forwardMsg.content,
-          fileUrl: forwardMsg.fileUrl,
-          fileType: forwardMsg.fileType,
-          fileName: forwardMsg.fileName
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: forwardMsg.content, fileUrl: forwardMsg.fileUrl, fileType: forwardMsg.fileType, fileName: forwardMsg.fileName }),
       });
       toast.success("Message forwarded");
-      setForwardMsg(null);
-      setActionSheetMsg(null);
-    } catch (err) {
-      toast.error("Failed to forward message");
-    }
+      setForwardMsg(null); setActionSheetMsg(null);
+    } catch (err) { toast.error("Failed to forward message"); }
   }
 
   function markAsUnread() {
@@ -647,8 +581,8 @@ export default function ChatPage() {
       const el = document.getElementById(`msg-${messageId}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-yellow-500", "rounded-lg");
-        setTimeout(() => { el.classList.remove("ring-2", "ring-yellow-500", "rounded-lg"); }, 2000);
+        el.classList.add("ring-2", "ring-emerald-500", "bg-emerald-500/10", "rounded-xl", "transition-all", "duration-500");
+        setTimeout(() => { el.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-500/10", "rounded-xl"); }, 2000);
       }
     }, 150);
   }
@@ -659,9 +593,7 @@ export default function ChatPage() {
     if (!editingMessageId || !editingContent.trim() || !activeId) return;
     try {
       const res = await fetch(`/api/conversations/${activeId}/messages/${editingMessageId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editingContent }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: editingContent }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -678,9 +610,7 @@ export default function ChatPage() {
     if (!activeId || !confirm("Delete this message?")) return;
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
     try {
-      await fetch(`/api/conversations/${activeId}/messages/${messageId}`, {
-        method: "DELETE",
-      });
+      await fetch(`/api/conversations/${activeId}/messages/${messageId}`, { method: "DELETE" });
       toast.success("Message deleted");
     } catch (err) { console.error(err); toast.error("Failed to delete"); }
   }
@@ -736,8 +666,7 @@ export default function ChatPage() {
     setCreatingTask(true);
     try {
       const res = await fetch(`/api/messages/${taskFromMessage.id}/to-task`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: taskForm.title.trim(), description: taskForm.description.trim(), priority: taskForm.priority, dueDate: taskForm.dueDate || null }),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed"); }
@@ -747,7 +676,8 @@ export default function ChatPage() {
   }
 
   const active = conversations.find((c) => c.id === activeId);
-
+  const mentionableUsers = active ? (active.isGroup ? active.members : active.otherUser ? [active.otherUser] : []) : [];
+  const filteredMentions = mentionableUsers.filter(u => (u.name || u.email).toLowerCase().includes(mentionFilter));
   return (
     <div className="flex h-full relative overflow-hidden bg-background">
       {/* ===================== SIDEBAR ===================== */}
@@ -864,6 +794,7 @@ export default function ChatPage() {
               <span className="text-[11px] text-muted flex-shrink-0">View all</span>
             </button>
           )}
+
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 relative" ref={scrollContainerRef} onScroll={handleScroll}>
             {loadingMessages ? (
@@ -928,31 +859,30 @@ export default function ChatPage() {
                               </div>
                             )}
 
-                            {/* Image */}
                             {msg.fileUrl && isImage && (
                               <div className={`mt-0.5 ${isMe ? "ml-auto" : ""}`}>
-                                <button type="button" onClick={() => setPreviewImage(msg.fileUrl!)} className="block rounded-2xl overflow-hidden border border-border hover:border-emerald-500/40 transition">
+                                <button type="button" onClick={() => setPreviewImage(msg.fileUrl!)} className="block rounded-2xl overflow-hidden border border-border hover:border-emerald-500/40 transition shadow-sm">
                                   <img src={msg.fileUrl} alt={msg.fileName || "attachment"} className="max-w-[260px] md:max-w-sm max-h-80 object-cover" />
                                 </button>
                               </div>
                             )}
 
-                            {/* Audio / Voice Note */}
                             {msg.fileUrl && isAudio && (
                               <div className={`mt-0.5 w-full max-w-[300px] ${isMe ? "ml-auto" : ""}`}>
-                                <audio controls src={msg.fileUrl} className="w-full h-10 rounded-full outline-none" style={{ filter: "invert(10%)" }} />
+                                <div className="bg-card border border-border p-2 rounded-2xl shadow-sm">
+                                  <audio controls src={msg.fileUrl} className="w-full h-10 outline-none" style={{ filter: "invert(10%)" }} />
+                                </div>
                               </div>
                             )}
 
-                            {/* File */}
                             {msg.fileUrl && !isImage && !isAudio && (
-                              <a href={msg.fileUrl} download={msg.fileName || "file"} className={`mt-0.5 inline-flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-border bg-foreground/[0.03] hover:bg-foreground/[0.06] transition max-w-sm ${isMe ? "ml-auto" : ""}`}>
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0"><FileText className="w-4 h-4 text-emerald-500" /></div>
+                              <a href={msg.fileUrl} download={msg.fileName || "file"} className={`mt-0.5 inline-flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-border bg-card hover:bg-foreground/[0.02] transition max-w-sm shadow-sm group/file ${isMe ? "ml-auto" : ""}`}>
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0"><FileText className="w-4 h-4 text-emerald-500" /></div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[13px] font-medium truncate">{msg.fileName || "File"}</p>
                                   <p className="text-[11px] text-muted">Click to download</p>
                                 </div>
-                                <Download className="w-4 h-4 text-muted flex-shrink-0" />
+                                <Download className="w-4 h-4 text-muted flex-shrink-0 group-hover/file:text-emerald-500 transition" />
                               </a>
                             )}
 
@@ -960,13 +890,13 @@ export default function ChatPage() {
                               <div className="mt-1 w-full max-w-md space-y-2">
                                 <textarea value={editingContent} onChange={(e) => setEditingContent(e.target.value)} rows={2} autoFocus className="w-full rounded-xl border border-emerald-500/50 bg-foreground/[0.04] px-3 py-2 text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none" />
                                 <div className={`flex gap-2 ${isMe ? "justify-end" : ""}`}>
-                                  <button onClick={saveEdit} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">Save</button>
+                                  <button onClick={saveEdit} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-sm">Save</button>
                                   <button onClick={cancelEdit} className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] hover:bg-foreground/10 text-xs font-semibold transition">Cancel</button>
                                 </div>
                               </div>
                             ) : (
                               msg.content && (
-                                <div className={`relative max-w-[85%] md:max-w-[75%] ${isMe ? "bg-emerald-500/[0.12] text-foreground rounded-2xl rounded-tr-md" : "bg-foreground/[0.04] text-foreground rounded-2xl rounded-tl-md"} px-3.5 py-2 ${groupedWithNext ? (isMe ? "rounded-br-md" : "rounded-bl-md") : ""}`}>
+                                <div className={`relative max-w-[85%] md:max-w-[75%] ${isMe ? "bg-emerald-500/[0.12] text-foreground rounded-2xl rounded-tr-md" : "bg-foreground/[0.04] text-foreground rounded-2xl rounded-tl-md"} px-3.5 py-2 ${groupedWithNext ? (isMe ? "rounded-br-md" : "rounded-bl-md") : ""} shadow-sm`}>
                                   <p className="text-[14.5px] leading-relaxed break-words whitespace-pre-wrap">
                                     {renderContent(msg.content)}
                                     {msg.editedAt && <span className="text-[10px] text-muted ml-2 italic">(edited)</span>}
@@ -981,7 +911,7 @@ export default function ChatPage() {
                                   const users: string[] = reactions[emoji];
                                   const mine = users.includes(session?.user?.id || "");
                                   return (
-                                    <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className={`px-1.5 py-0.5 rounded-full border text-[11px] transition ${mine ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300" : "bg-foreground/[0.04] border-border hover:bg-foreground/[0.08]"}`}>
+                                    <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className={`px-1.5 py-0.5 rounded-full border text-[11px] transition shadow-sm ${mine ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300" : "bg-card border-border hover:bg-foreground/[0.04]"}`}>
                                       {emoji} {users.length}
                                     </button>
                                   );
@@ -1008,32 +938,31 @@ export default function ChatPage() {
                             )}
                           </div>
 
-                          {/* Hover toolbar with Quick Emojis */}
-                          <div className={`hidden md:flex absolute top-0 ${isMe ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition items-center gap-0.5 rounded-lg border border-border bg-card shadow-sm px-1 py-0.5 z-10`}>
-                            {/* Quick Emoji Bar */}
+                          {/* Hover toolbar */}
+                          <div className={`hidden md:flex absolute top-0 ${isMe ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition items-center gap-0.5 rounded-xl border border-border bg-card shadow-lg px-1 py-0.5 z-10`}>
                             <div className="flex gap-0.5 border-r border-border pr-1 mr-0.5">
                               {QUICK_EMOJIS.slice(0, 3).map(emoji => (
-                                <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="p-1 rounded hover:bg-foreground/[0.06] transition text-[13px]" title="React">
+                                <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="p-1 rounded-md hover:bg-foreground/[0.06] transition text-[13px] active:scale-95" title="React">
                                   {emoji}
                                 </button>
                               ))}
                             </div>
-                            <button onClick={() => setEmojiPickerFor(emojiPickerFor === msg.id ? null : msg.id)} className="p-1 rounded hover:bg-foreground/[0.06] transition" title="More reactions"><Smile className="w-3.5 h-3.5 text-muted" /></button>
-                            <button onClick={() => { setForwardMsg(msg); setActionSheetMsg(null); }} className="p-1 rounded hover:bg-foreground/[0.06] transition" title="Forward"><Forward className="w-3.5 h-3.5 text-muted" /></button>
-                            <button onClick={() => setOpenThread(msg)} className="p-1 rounded hover:bg-foreground/[0.06] transition" title="Reply"><MessageCircle className="w-3.5 h-3.5 text-muted" /></button>
-                            <button onClick={() => togglePin(msg)} className="p-1 rounded hover:bg-foreground/[0.06] transition" title={pinnedMessages.some((p) => p.id === msg.id) ? "Unpin" : "Pin"}>
+                            <button onClick={() => setEmojiPickerFor(emojiPickerFor === msg.id ? null : msg.id)} className="p-1 rounded-md hover:bg-foreground/[0.06] transition active:scale-95" title="More reactions"><Smile className="w-3.5 h-3.5 text-muted" /></button>
+                            <button onClick={() => { setForwardMsg(msg); setActionSheetMsg(null); }} className="p-1 rounded-md hover:bg-foreground/[0.06] transition active:scale-95" title="Forward"><Forward className="w-3.5 h-3.5 text-muted" /></button>
+                            <button onClick={() => setOpenThread(msg)} className="p-1 rounded-md hover:bg-foreground/[0.06] transition active:scale-95" title="Reply"><MessageCircle className="w-3.5 h-3.5 text-muted" /></button>
+                            <button onClick={() => togglePin(msg)} className="p-1 rounded-md hover:bg-foreground/[0.06] transition active:scale-95" title={pinnedMessages.some((p) => p.id === msg.id) ? "Unpin" : "Pin"}>
                               <Pin className={`w-3.5 h-3.5 ${pinnedMessages.some((p) => p.id === msg.id) ? "text-yellow-500 fill-yellow-500" : "text-muted"}`} />
                             </button>
-                            <button onClick={() => setActionSheetMsg(msg)} className="p-1 rounded hover:bg-foreground/[0.06] transition" title="More"><MoreHorizontal className="w-3.5 h-3.5 text-muted" /></button>
+                            <button onClick={() => setActionSheetMsg(msg)} className="p-1 rounded-md hover:bg-foreground/[0.06] transition active:scale-95" title="More"><MoreHorizontal className="w-3.5 h-3.5 text-muted" /></button>
                           </div>
 
                           {emojiPickerFor === msg.id && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={() => setEmojiPickerFor(null)} />
                               <div className={`absolute ${isMe ? "right-0" : "left-0"} top-full mt-1 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[280px]`}>
-                                <div className="grid grid-cols-8 gap-0.5 max-h-44 overflow-y-auto">
+                                <div className="grid grid-cols-8 gap-0.5 max-h-44 overflow-y-auto custom-scrollbar">
                                   {FULL_EMOJIS.map((emoji) => (
-                                    <button key={emoji} onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id, emoji); }} className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center">
+                                    <button key={emoji} onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id, emoji); }} className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center active:scale-90">
                                       {emoji}
                                     </button>
                                   ))}
@@ -1067,14 +996,7 @@ export default function ChatPage() {
           {/* Scroll to bottom pill */}
           <AnimatePresence>
             {showScrollDown && (
-              <motion.button
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                onClick={scrollToBottom}
-                className="absolute bottom-[90px] right-6 md:right-10 p-2.5 rounded-full bg-card border border-border shadow-xl text-muted hover:text-foreground hover:bg-foreground/[0.04] transition z-20"
-                title="Scroll to latest"
-              >
+              <motion.button initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} onClick={scrollToBottom} className="absolute bottom-[90px] right-6 md:right-10 p-2.5 rounded-full bg-card border border-border shadow-xl text-muted hover:text-foreground hover:bg-foreground/[0.04] transition z-20 active:scale-95" title="Scroll to latest">
                 <ArrowDown className="w-5 h-5" />
               </motion.button>
             )}
@@ -1082,35 +1004,43 @@ export default function ChatPage() {
 
           {/* Composer */}
           <form onSubmit={sendMessage} className="border-t border-border p-3 md:p-4 flex-shrink-0 relative z-10 bg-background">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-foreground/[0.025] focus-within:ring-1 focus-within:ring-emerald-500/40 focus-within:border-emerald-500/40 transition px-2 py-1.5">
+            <div className="max-w-3xl mx-auto relative">
+              
+              <AnimatePresence>
+                {showMentions && filteredMentions.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-64 bg-card border border-border shadow-2xl rounded-xl overflow-hidden z-50">
+                    <div className="p-2 border-b border-border bg-foreground/[0.02]">
+                      <p className="text-[10px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5"><AtSign className="w-3 h-3" /> Mention someone</p>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1 custom-scrollbar">
+                      {filteredMentions.map(u => (
+                        <button key={u.id} type="button" onClick={() => insertMention(u.name || u.email.split("@")[0])} className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-foreground/[0.04] transition">
+                          <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-[10px] font-bold overflow-hidden border border-emerald-500/20">
+                            {u.image ? <img src={u.image} alt="" className="w-full h-full object-cover" /> : u.name?.[0]?.toUpperCase() || "?"}
+                          </div>
+                          <span className="text-[13px] font-medium truncate">{u.name || u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-foreground/[0.025] focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:border-emerald-500/40 transition px-2 py-1.5 shadow-sm">
                 <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
                 
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading || isRecording} className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0" title="Attach">
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading || isRecording} className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0 active:scale-95" title="Attach">
                   {uploading ? <Loader2 className="w-[18px] h-[18px] animate-spin text-muted" /> : <Paperclip className="w-[18px] h-[18px] text-muted" />}
                 </button>
 
-                <button type="button" onClick={toggleRecording} className={`p-2 rounded-lg transition flex-shrink-0 ${isRecording ? "bg-red-500/20 text-red-500 animate-pulse" : "hover:bg-foreground/[0.06] text-muted"}`} title={isRecording ? "Stop recording" : "Record voice note"}>
+                <button type="button" onClick={toggleRecording} className={`p-2 rounded-lg transition flex-shrink-0 active:scale-95 ${isRecording ? "bg-red-500/20 text-red-500 animate-pulse" : "hover:bg-foreground/[0.06] text-muted"}`} title={isRecording ? "Stop recording" : "Record voice note"}>
                   <Mic className="w-[18px] h-[18px]" />
                 </button>
 
                 <textarea
                   ref={textareaRef}
                   value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    if (typingChannelRef.current && session?.user?.id && activeId) {
-                      if (!isCurrentlyTypingRef.current) {
-                        isCurrentlyTypingRef.current = true;
-                        typingChannelRef.current.send({ type: "broadcast", event: "typing", payload: { userId: session.user.id, userName: session.user.name || "Someone" } });
-                      }
-                      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-                      typingTimeoutRef.current = setTimeout(() => {
-                        isCurrentlyTypingRef.current = false;
-                        typingChannelRef.current?.send({ type: "broadcast", event: "stop-typing", payload: { userId: session.user.id } });
-                      }, TYPING_TIMEOUT);
-                    }
-                  }}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -1121,26 +1051,26 @@ export default function ChatPage() {
                   rows={1}
                   placeholder={isRecording ? "Recording voice note..." : `Message ${active.displayName}…`}
                   disabled={isRecording}
-                  className="flex-1 min-w-0 bg-transparent px-1 py-2 text-[14.5px] text-foreground placeholder:text-muted focus:outline-none resize-none max-h-[120px] overflow-y-auto disabled:opacity-50"
+                  className="flex-1 min-w-0 bg-transparent px-2 py-2 text-[14.5px] text-foreground placeholder:text-muted focus:outline-none resize-none max-h-[120px] overflow-y-auto custom-scrollbar disabled:opacity-50"
                   style={{ minHeight: "36px" }}
                 />
 
-                <button type="button" onClick={() => setEmojiPickerFor(emojiPickerFor === "__composer__" ? null : "__composer__")} className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0" title="Emoji">
+                <button type="button" onClick={() => setEmojiPickerFor(emojiPickerFor === "__composer__" ? null : "__composer__")} className="p-2 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0 active:scale-95" title="Emoji">
                   <Smile className="w-[18px] h-[18px] text-muted" />
                 </button>
 
-                <button type="submit" disabled={(!input.trim() && !isRecording) || sending} className="rounded-full bg-emerald-500 text-white w-9 h-9 flex items-center justify-center hover:bg-emerald-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0" title="Send">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <button type="submit" disabled={(!input.trim() && !isRecording) || sending} className="rounded-full bg-emerald-500 text-white w-9 h-9 flex items-center justify-center hover:bg-emerald-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 shadow-sm active:scale-95" title="Send">
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 -ml-0.5" />}
                 </button>
               </div>
 
               {emojiPickerFor === "__composer__" && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setEmojiPickerFor(null)} />
-                  <div className="absolute bottom-24 md:bottom-20 right-4 md:right-6 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px]">
-                    <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                  <div className="absolute bottom-16 right-0 p-2 rounded-xl bg-card border border-border shadow-2xl z-50 w-[300px]">
+                    <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto custom-scrollbar">
                       {FULL_EMOJIS.map((emoji) => (
-                        <button key={emoji} type="button" onClick={() => { setInput((v) => v + emoji); setEmojiPickerFor(null); }} className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center">
+                        <button key={emoji} type="button" onClick={() => { setInput((v) => v + emoji); setEmojiPickerFor(null); }} className="w-8 h-8 rounded hover:bg-foreground/[0.08] transition text-base flex items-center justify-center active:scale-90">
                           {emoji}
                         </button>
                       ))}
@@ -1157,13 +1087,12 @@ export default function ChatPage() {
             <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-5"><MessageSquare className="w-10 h-10 text-emerald-500" /></div>
             <h2 className="text-lg font-semibold text-foreground mb-1.5 tracking-tight">Your conversations</h2>
             <p className="text-[13.5px] text-muted leading-relaxed mb-5">Select a conversation from the sidebar, or start a new one to begin.</p>
-            <button onClick={() => setShowNewDm(true)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition">
+            <button onClick={() => setShowNewDm(true)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition shadow-sm active:scale-95">
               <Plus className="w-4 h-4" /> New conversation
             </button>
           </div>
         </div>
       )}
-
       {/* ===================== MODALS ===================== */}
       {showGroupCall && activeId && active && (
         <GroupCall conversationId={activeId} conversationName={active.displayName} onClose={() => setShowGroupCall(false)} />
@@ -1179,9 +1108,9 @@ export default function ChatPage() {
       <AnimatePresence>
         {previewImage && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
-            <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition" aria-label="Close"><X className="w-5 h-5" /></button>
-            <a href={previewImage} download onClick={(e) => e.stopPropagation()} className="absolute top-4 right-16 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition" aria-label="Download"><Download className="w-5 h-5" /></a>
-            <motion.img initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} src={previewImage} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+            <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition active:scale-95" aria-label="Close"><X className="w-5 h-5" /></button>
+            <a href={previewImage} download onClick={(e) => e.stopPropagation()} className="absolute top-4 right-16 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition active:scale-95" aria-label="Download"><Download className="w-5 h-5" /></a>
+            <motion.img initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} src={previewImage} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -1192,9 +1121,9 @@ export default function ChatPage() {
           <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-hidden max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h3 className="font-semibold text-[14px] flex items-center gap-2"><Pin className="w-4 h-4 text-yellow-500 fill-yellow-500" /> Pinned messages</h3>
-              <button onClick={() => setShowPinnedList(false)} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowPinnedList(false)} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition active:scale-95"><X className="w-4 h-4" /></button>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
               {pinnedMessages.length === 0 ? (
                 <div className="text-center py-12 text-muted text-sm">No pinned messages yet</div>
               ) : (
@@ -1208,7 +1137,7 @@ export default function ChatPage() {
                         </div>
                         <p className="text-[13px] text-foreground/80 line-clamp-2">{pin.content || "📎 Attachment"}</p>
                       </div>
-                      <button onClick={() => togglePin(pin)} className="p-1.5 rounded-lg hover:bg-yellow-500/20 transition flex-shrink-0" title="Unpin"><Pin className="w-4 h-4 text-yellow-500 fill-yellow-500" /></button>
+                      <button onClick={() => togglePin(pin)} className="p-1.5 rounded-lg hover:bg-yellow-500/20 transition flex-shrink-0 active:scale-95" title="Unpin"><Pin className="w-4 h-4 text-yellow-500 fill-yellow-500" /></button>
                     </div>
                   </div>
                 ))
@@ -1222,11 +1151,7 @@ export default function ChatPage() {
       <AnimatePresence>
         {actionSheetMsg && (
           <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end lg:items-center justify-center" onClick={() => setActionSheetMsg(null)}>
-            <motion.div
-              initial={{ y: 300, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 300, opacity: 0 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full lg:max-w-sm bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl overflow-hidden pb-4 lg:pb-0"
-            >
+            <motion.div initial={{ y: 300, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 300, opacity: 0 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="w-full lg:max-w-sm bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl overflow-hidden pb-4 lg:pb-0">
               <div className="lg:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-muted/40" /></div>
               <div className="px-5 py-4 border-b border-border">
                 <p className="text-[11px] text-muted mb-1">{actionSheetMsg.user?.name || "User"}</p>
@@ -1243,35 +1168,35 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="p-2">
-                <button onClick={() => openTaskFromMessage(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                <button onClick={() => openTaskFromMessage(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                   <CheckSquare className="w-5 h-5 text-emerald-500" /><span className="text-[13.5px] font-medium">Turn into task</span>
                 </button>
-                <button onClick={() => { setForwardMsg(actionSheetMsg); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                <button onClick={() => { setForwardMsg(actionSheetMsg); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                   <Forward className="w-5 h-5 text-muted" /><span className="text-[13.5px] font-medium">Forward message</span>
                 </button>
-                <button onClick={() => { copyMessage(actionSheetMsg.content); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                <button onClick={() => { copyMessage(actionSheetMsg.content); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                   <Copy className="w-5 h-5 text-muted" /><span className="text-[13.5px] font-medium">Copy text</span>
                 </button>
-                <button onClick={() => { setOpenThread(actionSheetMsg); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                <button onClick={() => { setOpenThread(actionSheetMsg); setActionSheetMsg(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                   <MessageCircle className="w-5 h-5 text-muted" /><span className="text-[13.5px] font-medium">Reply in thread</span>
                 </button>
-                <button onClick={() => togglePin(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                <button onClick={() => togglePin(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                   <Pin className={`w-5 h-5 ${pinnedMessages.some((p) => p.id === actionSheetMsg.id) ? "text-yellow-500" : "text-muted"}`} />
                   <span className="text-[13.5px] font-medium">{pinnedMessages.some((p) => p.id === actionSheetMsg.id) ? "Unpin message" : "Pin message"}</span>
                 </button>
                 {actionSheetMsg.userId === session?.user?.id && actionSheetMsg.content && (
-                  <button onClick={() => startEditing(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left">
+                  <button onClick={() => startEditing(actionSheetMsg)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/[0.04] transition text-left active:scale-[0.98]">
                     <Pencil className="w-5 h-5 text-emerald-500" /><span className="text-[13.5px] font-medium">Edit message</span>
                   </button>
                 )}
                 {actionSheetMsg.userId === session?.user?.id && (
-                  <button onClick={() => deleteMessage(actionSheetMsg.id)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition text-left">
+                  <button onClick={() => deleteMessage(actionSheetMsg.id)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition text-left active:scale-[0.98]">
                     <Trash2 className="w-5 h-5 text-red-500" /><span className="text-[13.5px] font-medium text-red-500">Delete message</span>
                   </button>
                 )}
               </div>
               <div className="px-3 pt-2 lg:hidden">
-                <button onClick={() => setActionSheetMsg(null)} className="w-full py-3 rounded-xl bg-foreground/[0.06] hover:bg-foreground/10 transition text-sm font-medium">Cancel</button>
+                <button onClick={() => setActionSheetMsg(null)} className="w-full py-3 rounded-xl bg-foreground/[0.06] hover:bg-foreground/10 transition text-sm font-medium active:scale-[0.98]">Cancel</button>
               </div>
             </motion.div>
           </div>
@@ -1282,20 +1207,16 @@ export default function ChatPage() {
       <AnimatePresence>
         {forwardMsg && (
           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setForwardMsg(null)}>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
-            >
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <h3 className="font-semibold text-[14px] flex items-center gap-2"><Forward className="w-4 h-4 text-emerald-500" /> Forward to...</h3>
-                <button onClick={() => setForwardMsg(null)} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition"><X className="w-4 h-4" /></button>
+                <button onClick={() => setForwardMsg(null)} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition active:scale-95"><X className="w-4 h-4" /></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-2">
+              <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
                 {conversations.map(c => (
-                  <button key={c.id} onClick={() => forwardMessage(c.id)} className="w-full text-left p-3 rounded-xl hover:bg-foreground/[0.04] transition flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      {c.isGroup ? <Users className="w-4 h-4 text-emerald-500" /> : <MessageSquare className="w-4 h-4 text-emerald-500" />}
+                  <button key={c.id} onClick={() => forwardMessage(c.id)} className="w-full text-left p-3 rounded-xl hover:bg-foreground/[0.04] transition flex items-center gap-3 active:scale-[0.98]">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-600">
+                      {c.isGroup ? <Users className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
                     </div>
                     <span className="text-[13px] font-medium truncate">{c.displayName}</span>
                   </button>
@@ -1310,17 +1231,13 @@ export default function ChatPage() {
       <AnimatePresence>
         {taskFromMessage && (
           <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-end lg:items-center justify-center" onClick={() => !creatingTask && setTaskFromMessage(null)}>
-            <motion.div
-              initial={{ y: 400, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 400, opacity: 0 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full lg:max-w-lg bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
-            >
+            <motion.div initial={{ y: 400, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 400, opacity: 0 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="w-full lg:max-w-lg bg-card border-t lg:border border-border rounded-t-3xl lg:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
               <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-muted/40" /></div>
               <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
                 <h3 className="font-semibold text-[14px] flex items-center gap-2"><CheckSquare className="w-4 h-4 text-emerald-500" /> Create task</h3>
-                <button onClick={() => setTaskFromMessage(null)} disabled={creatingTask} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition disabled:opacity-50"><X className="w-4 h-4" /></button>
+                <button onClick={() => setTaskFromMessage(null)} disabled={creatingTask} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition disabled:opacity-50 active:scale-95"><X className="w-4 h-4" /></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
                 <div className="rounded-xl bg-foreground/[0.04] border border-border p-3">
                   <p className="text-[10px] text-muted mb-1 uppercase tracking-wider">From message</p>
                   <p className="text-[12px] text-foreground/80 line-clamp-2">{taskFromMessage.content || "📎 Attachment"}</p>
@@ -1337,7 +1254,7 @@ export default function ChatPage() {
                   <label className="block text-[13px] font-medium mb-2 text-foreground/80">Priority</label>
                   <div className="grid grid-cols-4 gap-2">
                     {PRIORITIES.map((p) => (
-                      <button key={p.value} type="button" onClick={() => setTaskForm({ ...taskForm, priority: p.value as any })} className={`py-2.5 rounded-xl border text-[12px] font-medium transition ${taskForm.priority === p.value ? "border-emerald-500/50 bg-emerald-500/10 " + p.color : "border-border bg-foreground/[0.04] hover:bg-foreground/[0.08] text-muted"}`}>
+                      <button key={p.value} type="button" onClick={() => setTaskForm({ ...taskForm, priority: p.value as any })} className={`py-2.5 rounded-xl border text-[12px] font-medium transition active:scale-95 ${taskForm.priority === p.value ? "border-emerald-500/50 bg-emerald-500/10 " + p.color : "border-border bg-foreground/[0.04] hover:bg-foreground/[0.08] text-muted"}`}>
                         {p.label}
                       </button>
                     ))}
@@ -1352,8 +1269,8 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="p-4 border-t border-border flex-shrink-0 flex gap-2 pb-6 lg:pb-4">
-                <button onClick={() => setTaskFromMessage(null)} disabled={creatingTask} className="flex-1 py-3 rounded-xl border border-border hover:bg-foreground/[0.04] transition text-[13px] font-medium disabled:opacity-50">Cancel</button>
-                <button onClick={createTaskFromMessage} disabled={creatingTask || !taskForm.title.trim()} className="flex-1 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition text-[13px] font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                <button onClick={() => setTaskFromMessage(null)} disabled={creatingTask} className="flex-1 py-3 rounded-xl border border-border hover:bg-foreground/[0.04] transition text-[13px] font-medium disabled:opacity-50 active:scale-95">Cancel</button>
+                <button onClick={createTaskFromMessage} disabled={creatingTask || !taskForm.title.trim()} className="flex-1 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition text-[13px] font-semibold disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm active:scale-95">
                   {creatingTask ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : "Create task"}
                 </button>
               </div>
@@ -1368,14 +1285,14 @@ export default function ChatPage() {
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h3 className="font-semibold text-[14px]">{selectedUsers.length > 1 ? `New group (${selectedUsers.length})` : "New message"}</h3>
-              <button type="button" onClick={(e) => { e.stopPropagation(); setShowNewDm(false); setSelectedUsers([]); setSearch(""); setSearchResults([]); setGroupName(""); }} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition"><X className="w-4 h-4" /></button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowNewDm(false); setSelectedUsers([]); setSearch(""); setSearchResults([]); setGroupName(""); }} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition active:scale-95"><X className="w-4 h-4" /></button>
             </div>
             {selectedUsers.length > 0 && (
               <div className="p-3 border-b border-border flex flex-wrap gap-2">
                 {selectedUsers.map((u) => (
                   <div key={u.id} className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11.5px]">
                     <span className="truncate max-w-[100px]">{u.name || u.email}</span>
-                    <button onClick={() => toggleUser(u)}><X className="w-3 h-3" /></button>
+                    <button onClick={() => toggleUser(u)} className="active:scale-90"><X className="w-3 h-3" /></button>
                   </div>
                 ))}
               </div>
@@ -1391,7 +1308,7 @@ export default function ChatPage() {
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" autoFocus className="w-full rounded-xl border border-border bg-foreground/[0.04] pl-10 pr-4 py-2.5 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition" />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
               {searching ? (
                 <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted" /></div>
               ) : searchResults.length === 0 ? (
@@ -1416,7 +1333,7 @@ export default function ChatPage() {
             </div>
             {selectedUsers.length > 0 && (
               <div className="p-4 border-t border-border">
-                <button onClick={startConversation} className="w-full rounded-xl bg-emerald-500 text-white py-3 font-semibold text-[13px] hover:bg-emerald-600 transition">
+                <button onClick={startConversation} className="w-full rounded-xl bg-emerald-500 text-white py-3 font-semibold text-[13px] hover:bg-emerald-600 transition shadow-sm active:scale-[0.98]">
                   {selectedUsers.length > 1 ? `Create group with ${selectedUsers.length} people` : `Chat with ${selectedUsers[0].name || selectedUsers[0].email}`}
                 </button>
               </div>
@@ -1432,9 +1349,9 @@ export default function ChatPage() {
             <div className="flex items-center gap-3 p-4 border-b border-border">
               <Search className="w-4 h-4 text-muted flex-shrink-0" />
               <input type="text" value={msgSearch} onChange={(e) => setMsgSearch(e.target.value)} placeholder="Search messages…" autoFocus className="flex-1 bg-transparent text-foreground placeholder:text-muted focus:outline-none text-[14px]" />
-              <button type="button" onClick={() => { setShowSearch(false); setMsgSearch(""); setSearchMsgResults([]); }} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0"><X className="w-4 h-4" /></button>
+              <button type="button" onClick={() => { setShowSearch(false); setMsgSearch(""); setSearchMsgResults([]); }} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0 active:scale-95"><X className="w-4 h-4" /></button>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
               {msgSearch.length < 2 ? (
                 <div className="text-center py-8 px-4 text-muted text-[13px]">Type at least 2 characters to search</div>
               ) : searchingMsgs ? (
@@ -1448,8 +1365,8 @@ export default function ChatPage() {
                       const el = document.getElementById(`msg-${msg.id}`);
                       if (el) {
                         el.scrollIntoView({ behavior: "smooth", block: "center" });
-                        el.classList.add("ring-2", "ring-emerald-500", "rounded-lg");
-                        setTimeout(() => { el.classList.remove("ring-2", "ring-emerald-500", "rounded-lg"); }, 2000);
+                        el.classList.add("ring-2", "ring-emerald-500", "bg-emerald-500/10", "rounded-xl", "transition-all", "duration-500");
+                        setTimeout(() => { el.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-500/10", "rounded-xl"); }, 2000);
                       }
                       setShowSearch(false); setMsgSearch(""); setSearchMsgResults([]);
                     }}

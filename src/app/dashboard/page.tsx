@@ -6,64 +6,31 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   MessageSquare, CheckSquare, FileText, Users, ArrowRight, ArrowUpRight,
-  Loader2, Sparkles, TrendingUp, Plus, Video, Bell, Calendar, Flame,
-  Activity, Zap, Command, CheckCircle2, Database, Target, Clock,
-  BarChart3, ChevronRight, PieChart, AlertCircle
+  Loader2, TrendingUp, Plus, Video, Bell, Calendar, Flame,
+  Activity, Zap, Command, Database, Target, Clock, BarChart3, ChevronRight,
+  PieChart, AlertCircle, Sparkles, CheckCircle2
 } from "lucide-react";
 
 type Stats = {
-  conversations: number;
-  tasks: number;
-  documents: number;
-  unreadNotifications: number;
-  unreadMessages: number;
-  urgentTasks: number;
-  dueToday: number;
+  conversations: number; tasks: number; documents: number;
+  unreadNotifications: number; unreadMessages: number;
+  urgentTasks: number; dueToday: number;
 };
 
 type Conversation = {
-  id: string;
-  isGroup?: boolean;
-  name?: string | null;
-  displayName?: string;
+  id: string; isGroup?: boolean; name?: string | null; displayName?: string;
   otherUser: { id?: string; name: string | null; email: string; image: string | null; } | null;
-  lastMessage: { content: string; createdAt: string } | null;
-  updatedAt: string;
+  lastMessage: { content: string; createdAt: string } | null; updatedAt: string;
 };
 
 type Task = {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  dueDate: string | null;
-  createdAt: string;
-  assigneeId: string | null;
-  assignee?: { id: string; name: string | null; image: string | null; } | null;
+  id: string; title: string; status: string; priority: string;
+  dueDate: string | null; createdAt: string; assigneeId: string | null;
 };
 
-type Document = {
-  id: string;
-  title: string;
-  updatedAt: string;
-  createdAt: string;
-};
-
-type Member = {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  lastSeenAt: string | null;
-};
-
-type Activity = {
-  id: string;
-  type: "message" | "task" | "doc";
-  title: string;
-  userName: string;
-  createdAt: string;
-};
+type Document = { id: string; title: string; updatedAt: string; createdAt: string; };
+type Member = { id: string; name: string | null; email: string; image: string | null; lastSeenAt: string | null; };
+type ActivityItem = { id: string; type: "message" | "task" | "doc"; title: string; userName: string; createdAt: string; };
 
 function isOnline(lastSeenAt: string | null | undefined) {
   if (!lastSeenAt) return false;
@@ -101,7 +68,7 @@ export default function DashboardPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [teamOnline, setTeamOnline] = useState<Member[]>([]);
-  const [activity, setActivity] = useState<Activity[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -133,20 +100,13 @@ export default function DashboardPage() {
         setTeamOnline(u.filter((m: Member) => isOnline(m.lastSeenAt)).slice(0, 8));
 
         setStats({
-          conversations: c.length,
-          tasks: t.filter((task: Task) => task.status !== "DONE").length,
-          documents: d.length,
-          unreadNotifications: notifs.unreadCount || 0,
-          unreadMessages: unreadMsgs,
-          urgentTasks: urgent,
-          dueToday: due,
+          conversations: c.length, tasks: t.filter((task: Task) => task.status !== "DONE").length, documents: d.length,
+          unreadNotifications: notifs.unreadCount || 0, unreadMessages: unreadMsgs, urgentTasks: urgent, dueToday: due,
         });
 
-        const feed: Activity[] = [];
+        const feed: ActivityItem[] = [];
         c.slice(0, 3).forEach((convo: Conversation) => {
-          if (convo.lastMessage) {
-            feed.push({ id: `msg-${convo.id}`, type: "message", title: `New message in ${convo.displayName || "chat"}`, userName: convo.otherUser?.name || "Someone", createdAt: convo.lastMessage.createdAt });
-          }
+          if (convo.lastMessage) feed.push({ id: `msg-${convo.id}`, type: "message", title: `New message in ${convo.displayName || "chat"}`, userName: convo.otherUser?.name || "Someone", createdAt: convo.lastMessage.createdAt });
         });
         t.slice(0, 3).forEach((task: Task) => {
           feed.push({ id: `task-${task.id}`, type: "task", title: `Task: ${task.title}`, userName: "You", createdAt: task.createdAt });
@@ -154,7 +114,7 @@ export default function DashboardPage() {
         d.slice(0, 2).forEach((doc: Document) => {
           feed.push({ id: `doc-${doc.id}`, type: "doc", title: `Updated: ${doc.title}`, userName: "You", createdAt: doc.updatedAt });
         });
-        setActivity(feed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 6));
+        setActivity(feed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -170,7 +130,7 @@ export default function DashboardPage() {
         const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
         return (priorityOrder[a.priority as keyof typeof priorityOrder] || 99) - (priorityOrder[b.priority as keyof typeof priorityOrder] || 99);
       })
-      .slice(0, 5);
+      .slice(0, 4);
   }, [allTasks, session?.user?.id]);
 
   const upcomingDeadlines = useMemo(() => {
@@ -179,7 +139,7 @@ export default function DashboardPage() {
     return allTasks
       .filter(t => t.dueDate && t.status !== "DONE" && new Date(t.dueDate) >= now && new Date(t.dueDate) <= next48h)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
-      .slice(0, 4);
+      .slice(0, 3);
   }, [allTasks]);
 
   const taskBreakdown = useMemo(() => {
@@ -198,12 +158,11 @@ export default function DashboardPage() {
     const parts: string[] = [];
     if (stats.dueToday > 0) parts.push(`${stats.dueToday} task${stats.dueToday === 1 ? "" : "s"} due`);
     if (stats.unreadMessages > 0) parts.push(`${stats.unreadMessages} active chat${stats.unreadMessages === 1 ? "" : "s"}`);
-    if (stats.unreadNotifications > 0) parts.push(`${stats.unreadNotifications} new notification${stats.unreadNotifications === 1 ? "" : "s"}`);
     return parts.length > 0 ? parts.join(" • ") : "Here's what's happening in your workspace today.";
   })();
 
   const statCards = [
-    { label: "Active chats", value: stats.conversations, icon: MessageSquare, href: "/dashboard/chat", badge: stats.unreadMessages > 0 ? `${stats.unreadMessages} recent` : null },
+    { label: "Active chats", value: stats.conversations, icon: MessageSquare, href: "/dashboard/chat", badge: stats.unreadMessages > 0 ? `${stats.unreadMessages} new` : null },
     { label: "Open tasks", value: stats.tasks, icon: CheckSquare, href: "/dashboard/tasks", badge: stats.urgentTasks > 0 ? `${stats.urgentTasks} urgent` : null },
     { label: "Documents", value: stats.documents, icon: FileText, href: "/dashboard/docs", badge: null },
     { label: "Notifications", value: stats.unreadNotifications, icon: Bell, href: "/dashboard", badge: stats.unreadNotifications > 0 ? "unread" : null },
@@ -234,39 +193,40 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      {/* ===== GREETING ===== */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
+      {/* ===== GREETING HEADER (Premium Glassmorphism) ===== */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+        className="mb-8 p-6 md:p-8 rounded-3xl bg-gradient-to-br from-emerald-500/[0.08] via-background to-background border border-border/50 shadow-sm relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+          <Sparkles className="w-48 h-48" />
+        </div>
+        <div className="relative z-10">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-2 tracking-tight">
             {greeting}, {firstName} 👋
           </h1>
-          <p className="text-muted text-sm md:text-base font-medium">{subtitle}</p>
+          <p className="text-muted text-sm md:text-base font-medium max-w-xl">{subtitle}</p>
         </div>
-        <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-xl font-semibold text-sm hover:opacity-90 transition shadow-sm">
-          <Command className="w-4 h-4" /> Command Menu (⌘K)
-        </button>
       </motion.div>
 
       {/* ===== STAT CARDS ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
         {statCards.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-            <Link href={stat.href} className="group block rounded-2xl border border-border bg-card p-4 md:p-5 hover:border-emerald-500/30 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform translate-x-4 -translate-y-4 group-hover:scale-110">
-                <stat.icon className="w-24 h-24" />
-              </div>
-              <div className="flex items-start justify-between mb-3 relative z-10">
-                <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+            <Link href={stat.href} className="group block rounded-2xl border border-border bg-card p-4 md:p-5 hover:border-emerald-500/30 shadow-sm hover:shadow-lg transition-all relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/60 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
                   <stat.icon className="w-5 h-5" />
                 </div>
                 {stat.badge && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-foreground/[0.06] text-muted border border-border/50">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-foreground/[0.06] text-muted border border-border/50 group-hover:border-emerald-500/20 group-hover:text-emerald-500 transition-colors">
                     {stat.badge}
                   </span>
                 )}
               </div>
-              <p className="text-2xl md:text-3xl font-bold mb-1 tracking-tight relative z-10">{stat.value}</p>
-              <p className="text-xs md:text-sm font-medium text-muted relative z-10">{stat.label}</p>
+              <p className="text-2xl md:text-3xl font-bold mb-1 tracking-tight">{stat.value}</p>
+              <p className="text-xs md:text-sm font-medium text-muted">{stat.label}</p>
             </Link>
           </motion.div>
         ))}
@@ -276,38 +236,37 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6 mb-8">
         
         {/* LEFT COL: Recent Chats */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col h-[360px]">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-emerald-500" /> Recent chats
             </h2>
-            <Link href="/dashboard/chat" className="text-[12px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 group">
+            <Link href="/dashboard/chat" className="text-[12px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 group bg-emerald-500/10 px-2.5 py-1 rounded-lg transition">
               View all <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </Link>
           </div>
           {conversations.length === 0 ? (
             <EmptyState icon={MessageSquare} title="No conversations yet" desc="Start chatting with your team" cta="Start a chat" href="/dashboard/chat" />
           ) : (
-            <div className="space-y-1 flex-1">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
               {conversations.map((c) => {
                 const displayName = c.isGroup ? c.displayName || c.name || "Group" : c.otherUser?.name || c.otherUser?.email || "Unknown";
                 const initial = c.isGroup ? "#" : c.otherUser?.name?.[0]?.toUpperCase() || "?";
                 const online = isOnline(c.otherUser?.lastSeenAt);
                 return (
-                  <Link key={c.id} href="/dashboard/chat" className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-foreground/[0.03] transition group">
+                  <Link key={c.id} href="/dashboard/chat" className="flex items-center gap-3 p-3 rounded-xl hover:bg-foreground/[0.04] transition group border border-transparent hover:border-border">
                     <div className="relative flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-[13px] font-semibold overflow-hidden">
                         {c.otherUser?.image ? <img src={c.otherUser.image} alt="" className="w-full h-full object-cover" /> : initial}
                       </div>
-                      {online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />}
+                      {online && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-card animate-pulse" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13.5px] font-medium truncate text-foreground">{displayName}</p>
-                      <p className="text-[12px] text-muted truncate">{c.lastMessage?.content || "No messages yet"}</p>
+                      <p className="text-[13.5px] font-semibold truncate text-foreground group-hover:text-emerald-500 transition-colors">{displayName}</p>
+                      <p className="text-[12px] text-muted truncate mt-0.5">{c.lastMessage?.content || "No messages yet"}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {c.lastMessage && <span className="text-[10.5px] font-medium text-muted/70">{timeAgo(c.lastMessage.createdAt)}</span>}
-                      <ArrowUpRight className="w-3.5 h-3.5 text-muted opacity-0 group-hover:opacity-100 transition" />
+                      {c.lastMessage && <span className="text-[10.5px] font-medium text-muted/70 bg-foreground/[0.04] px-1.5 py-0.5 rounded-md">{timeAgo(c.lastMessage.createdAt)}</span>}
                     </div>
                   </Link>
                 );
@@ -317,31 +276,31 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* RIGHT COL: My Focus Tasks */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col h-[360px]">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
               <Target className="w-4 h-4 text-orange-500" /> My Focus
             </h2>
-            <Link href="/dashboard/tasks" className="text-[12px] font-medium text-orange-500 hover:text-orange-400 flex items-center gap-1 group">
+            <Link href="/dashboard/tasks" className="text-[12px] font-medium text-orange-500 hover:text-orange-400 flex items-center gap-1 group bg-orange-500/10 px-2.5 py-1 rounded-lg transition">
               All <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </Link>
           </div>
           {myFocusTasks.length === 0 ? (
             <EmptyState icon={CheckSquare} title="You're all caught up" desc="No tasks assigned to you" cta="View tasks" href="/dashboard/tasks" />
           ) : (
-            <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
               {myFocusTasks.map((t) => {
                 const priority = PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.LOW;
                 const isOverdue = t.dueDate && new Date(t.dueDate).getTime() < Date.now();
                 return (
-                  <Link key={t.id} href="/dashboard/tasks" className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-foreground/[0.03] transition group">
-                    <div className={`w-1.5 h-1.5 rounded-full ${priority.dot} flex-shrink-0 mt-1.5`} />
+                  <Link key={t.id} href="/dashboard/tasks" className="flex items-start gap-3 p-3 rounded-xl hover:bg-foreground/[0.04] transition group border border-transparent hover:border-border">
+                    <div className={`w-2 h-2 rounded-full ${priority.dot} flex-shrink-0 mt-1.5 shadow-sm`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium truncate">{t.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[10.5px] font-semibold ${priority.text}`}>{priority.label}</span>
+                      <p className="text-[13px] font-semibold truncate text-foreground group-hover:text-orange-500 transition-colors">{t.title}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-foreground/[0.04] ${priority.text}`}>{priority.label}</span>
                         {t.dueDate && (
-                          <span className={`text-[10.5px] flex items-center gap-1 ${isOverdue ? "text-red-500 font-semibold" : "text-muted"}`}>
+                          <span className={`text-[10.5px] font-medium flex items-center gap-1 ${isOverdue ? "text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-md" : "text-muted"}`}>
                             <Calendar className="w-3 h-3" />
                             {new Date(t.dueDate).toLocaleDateString("en", { month: "short", day: "numeric" })}
                           </span>
@@ -359,56 +318,53 @@ export default function DashboardPage() {
       {/* ===== ANALYTICS & BOTTOM GRID ===== */}
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6 mb-8">
         
-        {/* Velocity Chart */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-emerald-500" /> Velocity
-              </h2>
-              <p className="text-[11px] text-muted mt-0.5">Tasks completed this week</p>
-            </div>
-            <span className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">+12.5%</span>
-          </div>
-          <div className="flex items-end justify-between h-32 gap-2">
-            {chartData.map((val, i) => (
-              <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
-                <div className="relative w-full flex justify-center h-full items-end">
-                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] font-semibold px-2 py-0.5 rounded">{val}</div>
-                  <motion.div 
-                    initial={{ height: 0 }} animate={{ height: `${val}%` }} transition={{ delay: 0.3 + (i * 0.1), type: "spring" }}
-                    className="w-full max-w-[24px] bg-emerald-500/20 rounded-t-sm group-hover:bg-emerald-500 transition-colors relative overflow-hidden"
-                  >
-                    <div className="absolute bottom-0 left-0 right-0 bg-emerald-500 rounded-t-sm" style={{ height: `${val}%` }} />
-                  </motion.div>
-                </div>
-                <span className="text-[10px] font-medium text-muted">{days[i]}</span>
+        {/* Velocity Chart (Premium Bar Chart) */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-emerald-500" /> Velocity
+                </h2>
+                <p className="text-[11px] text-muted mt-0.5">Tasks completed this week</p>
               </div>
-            ))}
+              <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">+12.5%</span>
+            </div>
+            <div className="flex items-end justify-between h-32 gap-1.5">
+              {chartData.map((val, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
+                  <div className="relative w-full flex justify-center h-full items-end">
+                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-foreground text-background text-[10px] font-bold px-2 py-1 rounded-md shadow-lg pointer-events-none z-10">{val}</div>
+                    <motion.div initial={{ height: 0 }} animate={{ height: `${val}%` }} transition={{ delay: 0.3 + (i * 0.1), type: "spring" }} className="w-full max-w-[20px] bg-emerald-500/20 rounded-t-md group-hover:bg-emerald-500 transition-colors relative overflow-hidden">
+                      <div className="absolute bottom-0 left-0 right-0 bg-emerald-500 rounded-t-md" style={{ height: `${val}%` }} />
+                    </motion.div>
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted">{days[i]}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
 
-        {/* Activity feed */}
+        {/* Activity Feed */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" /> Recent activity
             </h2>
-            <span className="text-[11px] font-medium text-muted bg-foreground/[0.04] px-2 py-1 rounded-md">Last 24 hours</span>
+            <span className="text-[11px] font-semibold text-muted bg-foreground/[0.04] px-2.5 py-1 rounded-lg">Last 24 hours</span>
           </div>
           {activity.length === 0 ? (
             <div className="text-center py-8 text-[13px] text-muted">No activity yet. Start using Nexus!</div>
           ) : (
             <div className="relative pl-3 space-y-5 before:absolute before:inset-y-0 before:left-[19px] before:w-px before:bg-border">
               {activity.map((item) => (
-                <div key={item.id} className="relative flex items-start gap-4">
-                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-card ${
-                      item.type === "message" ? "bg-blue-500/10 text-blue-500" : item.type === "task" ? "bg-orange-500/10 text-orange-500" : "bg-emerald-500/10 text-emerald-500"
-                    }`}>
+                <div key={item.id} className="relative flex items-start gap-4 group">
+                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-card shadow-sm group-hover:scale-110 transition-transform ${item.type === "message" ? "bg-blue-500/10 text-blue-500" : item.type === "task" ? "bg-orange-500/10 text-orange-500" : "bg-emerald-500/10 text-emerald-500"}`}>
                     {item.type === "message" ? <MessageSquare className="w-3.5 h-3.5" /> : item.type === "task" ? <CheckSquare className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
                   </div>
                   <div className="flex-1 min-w-0 pt-1">
-                    <p className="text-[13px] font-medium text-foreground">{item.title}</p>
+                    <p className="text-[13px] font-semibold text-foreground group-hover:text-emerald-500 transition-colors">{item.title}</p>
                     <p className="text-[11px] text-muted mt-0.5">{item.userName} • {timeAgo(item.createdAt)}</p>
                   </div>
                 </div>
@@ -418,100 +374,117 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* ===== TASK BREAKDOWN & UPCOMING ===== */}
-      <div className="grid lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-        {/* Task Breakdown (Donut style bar) */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2 mb-4">
-            <PieChart className="w-4 h-4 text-emerald-500" /> Task Breakdown
-          </h2>
-          <div className="flex h-3 rounded-full overflow-hidden mb-4 bg-foreground/[0.05]">
-            {taskBreakdown.map((t, i) => (
-              <div key={i} className={`h-full ${t.color}`} style={{ width: `${t.pct}%` }} />
-            ))}
+      {/* ===== TASK BREAKDOWN & TEAM PULSE ===== */}
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6 mb-8">
+        {/* Task Breakdown SVG Donut */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex items-center gap-6">
+          <div className="w-24 h-24 flex-shrink-0 relative">
+            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+              <path className="text-foreground/[0.04]" strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              {taskBreakdown.map((t, i) => {
+                const prevPct = taskBreakdown.slice(0, i).reduce((acc, curr) => acc + curr.pct, 0);
+                return (
+                  <motion.path
+                    key={i}
+                    initial={{ strokeDasharray: "0, 100" }} animate={{ strokeDasharray: `${t.pct}, 100` }} transition={{ duration: 1, delay: 0.4 + i * 0.1 }}
+                    className={`${t.color.replace("bg-", "text-")}`}
+                    strokeWidth="4" stroke="currentColor" fill="none" strokeDashoffset={-prevPct}
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                );
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xl font-bold">{allTasks.length}</span>
+              <span className="text-[9px] font-bold text-muted uppercase">Tasks</span>
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="flex-1 space-y-3">
+            <h2 className="text-[14px] font-semibold tracking-tight mb-2">Task Breakdown</h2>
             {taskBreakdown.map((t, i) => (
               <div key={i} className="flex items-center justify-between text-[12px]">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${t.color}`} />
-                  <span className="text-muted">{t.label}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${t.color}`} />
+                  <span className="font-medium text-muted">{t.label}</span>
                 </div>
-                <span className="font-semibold">{t.count}</span>
+                <span className="font-bold text-foreground">{t.count}</span>
               </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Upcoming Deadlines */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        {/* Team Pulse */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-orange-500" /> Upcoming Deadlines
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              Team Pulse
             </h2>
-            <span className="text-[11px] font-medium text-muted bg-foreground/[0.04] px-2 py-1 rounded-md">Next 48h</span>
+            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">{teamOnline.length} Online</span>
           </div>
-          {upcomingDeadlines.length === 0 ? (
-            <div className="text-center py-6 text-[13px] text-muted">No deadlines in the next 48 hours.</div>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-2">
-              {upcomingDeadlines.map(t => (
-                <Link key={t.id} href="/dashboard/tasks" className="flex items-start gap-3 p-3 rounded-xl border border-border/50 hover:bg-foreground/[0.03] transition">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Clock className="w-4 h-4 text-orange-500" />
+          <div className="flex-1 flex gap-3 overflow-x-auto pb-2 custom-scrollbar items-center">
+            {teamOnline.length === 0 ? (
+              <p className="text-[12px] text-muted w-full text-center">No one is online right now.</p>
+            ) : (
+              teamOnline.map((member) => (
+                <div key={member.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer">
+                  <div className="relative">
+                    <div className="w-11 h-11 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-[13px] font-bold border-2 border-card shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
+                      {member.image ? <img src={member.image} alt="" className="w-full h-full object-cover" /> : getInitials(member.name, member.email)}
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-card" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium truncate">{t.title}</p>
-                    <p className="text-[11px] font-semibold text-orange-500 mt-1">
-                      Due {new Date(t.dueDate!).toLocaleDateString("en", { weekday: "short", hour: "numeric", minute: "2-digit" })}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+                  <span className="text-[10px] font-semibold text-muted truncate max-w-[50px] text-center group-hover:text-foreground transition-colors">{member.name?.split(" ")[0] || "User"}</span>
+                </div>
+              ))
+            )}
+          </div>
         </motion.div>
       </div>
 
-      {/* ===== QUICK ACTIONS & STORAGE ===== */}
-      <div className="grid lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="lg:col-span-2">
-          <h2 className="text-[15px] font-semibold tracking-tight mb-4 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-yellow-500" /> Quick actions
+      {/* ===== UPCOMING DEADLINES ===== */}
+      {upcomingDeadlines.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="mb-8">
+          <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2 mb-4">
+            <AlertCircle className="w-4 h-4 text-orange-500" /> Upcoming Deadlines
           </h2>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href} className="group rounded-2xl border border-border bg-card p-3 md:p-4 hover:border-emerald-500/30 hover:bg-emerald-500/[0.02] shadow-sm hover:shadow-md transition flex flex-col items-center text-center">
-                <div className="w-10 h-10 rounded-xl bg-foreground/[0.04] text-foreground flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-emerald-500/10 group-hover:text-emerald-500 transition-all">
-                  <action.icon className="w-5 h-5" />
+          <div className="grid sm:grid-cols-3 gap-3">
+            {upcomingDeadlines.map(t => (
+              <Link key={t.id} href="/dashboard/tasks" className="flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:border-orange-500/30 hover:shadow-md transition-all group">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-orange-500 group-hover:text-white transition-colors text-orange-500">
+                  <Clock className="w-4 h-4" />
                 </div>
-                <p className="text-[11.5px] font-semibold text-foreground leading-tight">{action.label}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13.5px] font-semibold truncate group-hover:text-orange-500 transition-colors">{t.title}</p>
+                  <p className="text-[11.5px] font-bold text-orange-500 mt-1 bg-orange-500/10 px-2 py-0.5 rounded-md inline-block">
+                    Due {new Date(t.dueDate!).toLocaleDateString("en", { weekday: "short", hour: "numeric", minute: "2-digit" })}
+                  </p>
+                </div>
               </Link>
             ))}
           </div>
         </motion.div>
+      )}
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between">
-          <div>
-            <h2 className="text-[15px] font-semibold tracking-tight flex items-center gap-2 mb-1">
-              <Database className="w-4 h-4 text-emerald-500" /> Workspace Storage
-            </h2>
-            <p className="text-[12px] text-muted">Your team is using 24.5 GB of 100 GB</p>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-[11px] font-semibold mb-1.5">
-              <span className="text-foreground">24.5% Used</span>
-              <span className="text-muted">75.5 GB Free</span>
-            </div>
-            <div className="w-full h-2.5 bg-foreground/[0.06] rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: "24.5%" }} transition={{ delay: 0.6, duration: 1 }} className="h-full bg-emerald-500 rounded-full" />
-            </div>
-          </div>
-          <Link href="/dashboard/settings" className="mt-4 text-[12px] font-semibold text-emerald-500 hover:text-emerald-400 flex items-center justify-between group">
-            Upgrade storage <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
-          </Link>
-        </motion.div>
-      </div>
+      {/* ===== QUICK ACTIONS ===== */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mb-8">
+        <h2 className="text-[15px] font-semibold tracking-tight mb-4 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-yellow-500" /> Quick actions
+        </h2>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
+          {quickActions.map((action) => (
+            <Link key={action.label} href={action.href} className="group rounded-2xl border border-border bg-card p-4 hover:border-emerald-500/40 hover:bg-emerald-500/[0.02] shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center">
+              <div className="w-11 h-11 rounded-xl bg-foreground/[0.04] text-foreground flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <action.icon className="w-5 h-5" />
+              </div>
+              <p className="text-[11.5px] font-bold text-foreground leading-tight">{action.label}</p>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
 
     </div>
   );
@@ -519,7 +492,7 @@ export default function DashboardPage() {
 
 function EmptyState({ icon: Icon, title, desc, cta, href }: { icon: any; title: string; desc: string; cta: string; href: string; }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-8 px-4 h-full">
+    <div className="flex flex-col items-center justify-center text-center py-8 px-4 h-full flex-1">
       <div className="w-14 h-14 rounded-2xl bg-foreground/[0.03] border border-border/50 flex items-center justify-center mb-4">
         <Icon className="w-6 h-6 text-muted" />
       </div>
