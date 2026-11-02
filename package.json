@@ -13,6 +13,8 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@livekit/components-react": "^2.9.24",
+    "@livekit/components-styles": "^1.2.0",
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.117.2",
     "@tiptap/extension-bubble-menu": "^3.31.4",
@@ -22,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "cmdk": "^1.1.1",
     "framer-motion": "^13.4.6",
+    "livekit-client": "^2.23.0",
     "livekit-server-sdk": "^2.19.2",
     "lucide-react": "^1.49.0",
     "next": "16.3.7",
@@ -45,5 +48,9 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true
   }
 }
