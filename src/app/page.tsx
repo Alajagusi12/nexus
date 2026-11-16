@@ -1,282 +1,215 @@
-import Link from "next/link";
-import {
-  MessageSquare,
-  Video,
-  FileText,
-  CheckSquare,
-  Users,
-  Bell,
-  ArrowRight,
-  Check,
-} from "lucide-react";
+"use client";
 
-export default function HomePage() {
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  MessageSquare, Video, FileText, CheckSquare, Users, Bell, ArrowRight,
+  Check, Zap, Sparkles, LayoutDashboard, Shield, Command, Play, CheckCircle2
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+
+export default function LandingPage() {
+  const { data: session } = useSession();
+
   return (
-    <main className="min-h-screen bg-[#0A0F1E] text-white overflow-x-hidden">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0A0F1E]/80 border-b border-white/[0.06]">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-emerald-500/30">
+      
+      {/* ===================== NAVBAR ===================== */}
+      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/40">
         <div className="max-w-6xl mx-auto px-5 md:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-sm">
-              N
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+              <Zap className="w-5 h-5 fill-current" />
             </div>
-            <span className="text-base font-semibold tracking-tight">
+            <span className="text-xl font-bold tracking-tight text-foreground">
               Nexus
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-            <Link href="#features" className="hover:text-white transition">
-              Features
-            </Link>
-            <Link href="#pricing" className="hover:text-white transition">
-              Pricing
-            </Link>
+          <div className="hidden md:flex items-center gap-8 text-[13.5px] font-medium text-muted">
+            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden sm:block text-sm text-slate-300 hover:text-white transition"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="text-sm rounded-lg px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 transition font-medium"
-            >
-              Get started
-            </Link>
+            {session ? (
+              <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20">
+                Open Workspace <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="hidden sm:block text-[13px] font-semibold text-muted hover:text-foreground transition-colors">
+                  Sign in
+                </Link>
+                <Link href="/register" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-background text-[13px] font-semibold hover:opacity-90 transition shadow-sm">
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative max-w-6xl mx-auto px-5 md:px-6 pt-16 md:pt-24 pb-12 md:pb-20 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-xs text-slate-300 mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Now in beta — Free to try
-        </div>
+      {/* ===================== HERO SECTION ===================== */}
+      <section className="relative max-w-6xl mx-auto px-5 md:px-6 pt-24 md:pt-32 pb-16 text-center">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-emerald-500/15 blur-[120px] rounded-full pointer-events-none" />
+        
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400 mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Nexus 2.0 is now live
+          </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] mb-6">
-          <span className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
-            Your team&apos;s
-          </span>
-          <br />
-          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            all-in-one workspace
-          </span>
-        </h1>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
+            <span className="bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Your team&apos;s
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent">
+              all-in-one workspace
+            </span>
+          </h1>
 
-        <p className="text-base md:text-lg text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
-          Chat, call, write, and plan — in one place. No more juggling five
-          tools and five tabs.
-        </p>
+          <p className="text-base md:text-lg text-muted max-w-xl mx-auto mb-10 leading-relaxed">
+            Chat, plan, and write in one place. Nexus combines real-time messaging, Kanban boards, and documents into a single, blazing-fast interface.
+          </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center px-4">
-          <Link
-            href="/register"
-            className="w-full sm:w-auto group rounded-lg px-6 py-3 bg-blue-600 hover:bg-blue-500 transition font-medium flex items-center justify-center gap-2 text-sm"
-          >
-            Start for free
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
-          </Link>
-          <Link
-            href="#features"
-            className="w-full sm:w-auto rounded-lg px-6 py-3 border border-white/[0.08] text-slate-200 hover:bg-white/[0.03] transition font-medium text-sm text-center"
-          >
-            See features
-          </Link>
-        </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center px-4">
+            <Link href={session ? "/dashboard" : "/register"} className="w-full sm:w-auto group rounded-xl px-7 py-3.5 bg-emerald-500 hover:bg-emerald-600 transition shadow-xl shadow-emerald-500/20 font-semibold flex items-center justify-center gap-2 text-[14px] text-white">
+              Start for free <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            <Link href="#features" className="w-full sm:w-auto rounded-xl px-7 py-3.5 border border-border text-foreground hover:bg-foreground/[0.04] transition font-semibold text-[14px] flex items-center justify-center gap-2">
+              <Play className="w-4 h-4" /> Explore features
+            </Link>
+          </div>
+        </motion.div>
 
-        {/* Product preview */}
-        <div className="relative max-w-4xl mx-auto mt-16 md:mt-20">
-          <div className="absolute inset-x-0 -top-8 h-24 bg-gradient-to-b from-blue-500/15 to-transparent blur-3xl" />
-          <div className="relative rounded-xl border border-white/[0.08] bg-[#0F1425] p-1.5 shadow-2xl">
-            <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-white/[0.06]">
-              <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              <div className="ml-3 text-[10px] text-slate-500 font-mono">
-                nexus.app/dashboard
+        {/* Legendary Mockup */}
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
+          className="relative max-w-5xl mx-auto mt-16 md:mt-24"
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 h-full w-full pointer-events-none" />
+          <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl overflow-hidden">
+            <div className="rounded-xl border border-border bg-background overflow-hidden relative">
+              {/* Fake Browser Header */}
+              <div className="h-10 border-b border-border flex items-center px-4 gap-2 bg-foreground/[0.02]">
+                <div className="w-3 h-3 rounded-full bg-red-400/80" />
+                <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
+                <div className="ml-4 flex-1 max-w-xs h-6 rounded-md bg-foreground/[0.04] border border-border flex items-center px-2 text-[10px] text-muted font-mono">
+                  nexus.app/dashboard
+                </div>
+              </div>
+              {/* CSS-Only Dashboard Mockup */}
+              <div className="aspect-[16/9] bg-background p-4 md:p-8 flex flex-col gap-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="h-6 w-32 bg-foreground/10 rounded" />
+                  <div className="h-8 w-24 bg-emerald-500/20 rounded-lg" />
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-20 rounded-xl border border-border bg-card p-3 flex flex-col justify-between">
+                      <div className="h-6 w-6 rounded bg-foreground/5" />
+                      <div className="h-4 w-12 bg-foreground/10 rounded" />
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-4 flex-1">
+                  <div className="col-span-2 rounded-xl border border-border bg-card p-4">
+                    <div className="h-4 w-24 bg-foreground/10 rounded mb-4" />
+                    <div className="space-y-2">
+                      <div className="h-10 rounded bg-foreground/5" />
+                      <div className="h-10 rounded bg-foreground/5" />
+                      <div className="h-10 rounded bg-foreground/5" />
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="h-4 w-20 bg-foreground/10 rounded mb-4" />
+                    <div className="h-32 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 mx-auto w-32" />
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="relative aspect-[16/10] rounded-lg overflow-hidden bg-[#0A0F1E] flex items-center justify-center">
-              <p className="text-slate-600 text-xs md:text-sm">
-                Screenshot coming soon
-              </p>
-            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ===================== SOCIAL PROOF ===================== */}
+      <section className="border-y border-border/40 bg-foreground/[0.01] py-10">
+        <div className="max-w-6xl mx-auto px-5 text-center">
+          <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-6">Trusted by fast-moving teams</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale">
+            <div className="flex items-center gap-2 font-bold text-lg"><Zap className="w-5 h-5" /> Acme Corp</div>
+            <div className="flex items-center gap-2 font-bold text-lg"><Shield className="w-5 h-5" /> Vanguard</div>
+            <div className="flex items-center gap-2 font-bold text-lg"><Command className="w-5 h-5" /> Linear</div>
+            <div className="flex items-center gap-2 font-bold text-lg"><LayoutDashboard className="w-5 h-5" /> Stripe</div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section
-        id="features"
-        className="max-w-6xl mx-auto px-5 md:px-6 py-20 md:py-28"
-      >
-        <div className="max-w-xl mx-auto text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-            Everything you need
-          </h2>
-          <p className="text-slate-400 text-base">
-            One workspace. Six tools replaced.
-          </p>
+      {/* ===================== FEATURES ===================== */}
+      <section id="features" className="max-w-6xl mx-auto px-5 md:px-6 py-24">
+        <div className="max-w-xl mx-auto text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Everything you need. Nothing you don&apos;t.</h2>
+          <p className="text-muted text-[15px]">We replaced 5 different subscriptions with one unified workspace.</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
-            {
-              icon: MessageSquare,
-              title: "Chat",
-              desc: "DMs, groups, and threads with instant delivery.",
-            },
-            {
-              icon: Video,
-              title: "Video calls",
-              desc: "One-click WebRTC. No plugins, no downloads.",
-            },
-            {
-              icon: FileText,
-              title: "Documents",
-              desc: "Rich-text editor with autosave and history.",
-            },
-            {
-              icon: CheckSquare,
-              title: "Task boards",
-              desc: "Kanban with drag-and-drop and live sync.",
-            },
-            {
-              icon: Users,
-              title: "Team directory",
-              desc: "See who does what. Match people to projects.",
-            },
-            {
-              icon: Bell,
-              title: "Notifications",
-              desc: "Push alerts when it matters. Quiet when it doesn't.",
-            },
-          ].map((f) => (
-            <div
+            { icon: MessageSquare, title: "Real-time Chat", desc: "Lightning fast messaging with threads, mentions, and reactions.", color: "text-blue-500", bg: "bg-blue-500/10" },
+            { icon: Video, title: "Group Calls", desc: "Start a video or voice call directly from a chat, powered by LiveKit.", color: "text-purple-500", bg: "bg-purple-500/10" },
+            { icon: FileText, title: "Collaborative Docs", desc: "A rich-text editor with slash commands, focus mode, and Markdown export.", color: "text-pink-500", bg: "bg-pink-500/10" },
+            { icon: CheckSquare, title: "Kanban Tasks", desc: "Drag-and-drop task management with subtasks, comments, and priorities.", color: "text-orange-500", bg: "bg-orange-500/10" },
+            { icon: Users, title: "Multi-Tenant", desc: "Create multiple workspaces, invite members, and manage RBAC roles.", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+            { icon: Bell, title: "Notifications", desc: "Push alerts when it matters. Quiet when it doesn't.", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+          ].map((f, i) => (
+            <motion.div 
               key={f.title}
-              className="group bg-[#0A0F1E] p-6 md:p-8 hover:bg-white/[0.02] transition-colors"
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+              className="group p-6 rounded-2xl border border-border bg-card hover:border-emerald-500/30 hover:shadow-lg transition-all"
             >
-              <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-5 group-hover:border-blue-500/30 group-hover:bg-blue-500/5 transition-colors">
-                <f.icon className="w-5 h-5 text-slate-300 group-hover:text-blue-400 transition-colors" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${f.bg} ${f.color} group-hover:scale-110 transition-transform`}>
+                <f.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                {f.desc}
-              </p>
-            </div>
+              <h3 className="text-[16px] font-bold mb-2 text-foreground">{f.title}</h3>
+              <p className="text-[13.5px] text-muted leading-relaxed">{f.desc}</p>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      {/* Pricing */}
-      <section
-        id="pricing"
-        className="max-w-6xl mx-auto px-5 md:px-6 pb-20 md:pb-28"
-      >
+      {/* ===================== PRICING ===================== */}
+      <section id="pricing" className="max-w-6xl mx-auto px-5 md:px-6 pb-24">
         <div className="max-w-xl mx-auto text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-            Simple pricing
-          </h2>
-          <p className="text-slate-400 text-base">
-            Free during beta. Paid plans coming later.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Simple pricing</h2>
+          <p className="text-muted text-[15px]">Free during beta. Paid plans coming later.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
           {[
-            {
-              name: "Free",
-              price: "$0",
-              period: "forever",
-              features: [
-                "Unlimited messages",
-                "Group chats & threads",
-                "Video & voice calls",
-                "Task boards",
-                "Documents",
-                "Up to 10 members",
-              ],
-              cta: "Get started",
-              highlight: false,
-            },
-            {
-              name: "Pro",
-              price: "$12",
-              period: "/ month per user",
-              features: [
-                "Everything in Free",
-                "Unlimited members",
-                "Advanced analytics",
-                "Priority support",
-                "Custom branding",
-              ],
-              cta: "Coming soon",
-              highlight: true,
-            },
-            {
-              name: "Enterprise",
-              price: "Custom",
-              period: "",
-              features: [
-                "Everything in Pro",
-                "SSO / SAML",
-                "Audit logs",
-                "Dedicated support",
-                "Custom SLA",
-              ],
-              cta: "Contact us",
-              highlight: false,
-            },
+            { name: "Free", price: "$0", period: "forever", features: ["Unlimited messages", "Group chats & threads", "Task boards", "Documents", "Up to 10 members"], cta: "Get started", highlight: false },
+            { name: "Pro", price: "$12", period: "/ month", features: ["Everything in Free", "Unlimited members", "Advanced analytics", "Priority support", "Custom branding"], cta: "Coming soon", highlight: true },
+            { name: "Enterprise", price: "Custom", period: "", features: ["Everything in Pro", "SSO / SAML", "Audit logs", "Dedicated support", "Custom SLA"], cta: "Contact us", highlight: false },
           ].map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl border p-6 ${
-                plan.highlight
-                  ? "border-blue-500/30 bg-gradient-to-b from-blue-500/[0.06] to-transparent"
-                  : "border-white/[0.06] bg-white/[0.02]"
-              }`}
-            >
+            <div key={plan.name} className={`relative rounded-2xl border p-6 ${plan.highlight ? "border-emerald-500/40 bg-gradient-to-b from-emerald-500/[0.05] to-transparent shadow-lg shadow-emerald-500/5" : "border-border bg-card"}`}>
               <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-1">{plan.name}</h3>
+                <h3 className="text-[15px] font-bold mb-1 text-foreground">{plan.name}</h3>
                 <div className="flex items-baseline gap-1.5 mb-4">
-                  <span className="text-3xl font-semibold tracking-tight">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-xs text-slate-500">
-                      {plan.period}
-                    </span>
-                  )}
+                  <span className="text-3xl font-bold tracking-tight text-foreground">{plan.price}</span>
+                  {plan.period && <span className="text-[12px] font-medium text-muted">{plan.period}</span>}
                 </div>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {plan.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2.5 text-sm text-slate-400"
-                  >
-                    <Check
-                      className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
-                        plan.highlight ? "text-blue-400" : "text-slate-600"
-                      }`}
-                    />
+                  <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
+                    <Check className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${plan.highlight ? "text-emerald-500" : "text-muted/50"}`} />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
-              <Link
-                href={plan.highlight ? "/register" : "#"}
-                className={`block text-center rounded-lg py-2.5 font-medium text-sm transition ${
-                  plan.highlight
-                    ? "bg-blue-600 hover:bg-blue-500 text-white"
-                    : "border border-white/[0.08] hover:bg-white/[0.03] text-slate-300"
-                }`}
-              >
+              <Link href={plan.highlight ? "/register" : "#"} className={`block text-center rounded-xl py-2.5 font-semibold text-[13px] transition ${plan.highlight ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20" : "border border-border hover:bg-foreground/[0.04] text-foreground"}`}>
                 {plan.cta}
               </Link>
             </div>
@@ -284,65 +217,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="max-w-6xl mx-auto px-5 md:px-6 pb-20 md:pb-28">
-        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent p-10 md:p-14 text-center overflow-hidden">
-          <div className="absolute inset-x-0 -top-20 h-40 bg-gradient-to-b from-blue-500/10 to-transparent blur-3xl" />
-          <div className="relative">
-            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-3">
-              Ready to try it?
-            </h2>
-            <p className="text-slate-400 text-sm md:text-base mb-7 max-w-md mx-auto">
-              Takes 30 seconds. No credit card needed.
-            </p>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 bg-blue-600 hover:bg-blue-500 transition font-medium text-sm"
-            >
-              Create your workspace
-              <ArrowRight className="w-4 h-4" />
+      {/* ===================== FINAL CTA ===================== */}
+      <section className="max-w-6xl mx-auto px-5 md:px-6 pb-24">
+        <div className="relative rounded-3xl border border-border/50 bg-gradient-to-b from-emerald-500/[0.05] to-transparent p-10 md:p-16 text-center overflow-hidden">
+          <div className="absolute inset-x-0 -top-20 h-40 bg-gradient-to-b from-emerald-500/20 to-transparent blur-3xl" />
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">Ready to upgrade your workflow?</h2>
+            <p className="text-muted text-[15px] mb-8 max-w-md mx-auto">Takes 30 seconds. No credit card needed.</p>
+            <Link href={session ? "/dashboard" : "/register"} className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 transition shadow-xl shadow-emerald-500/20 font-semibold text-white text-[14px]">
+              Create your workspace <ArrowRight className="w-4 h-4" />
             </Link>
+            <div className="mt-6 flex items-center justify-center gap-6 text-[12px] text-muted font-medium">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Free forever plan</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> No credit card</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06]">
-        <div className="max-w-6xl mx-auto px-5 md:px-6 py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-[10px]">
-                N
-              </div>
-              <span className="text-sm font-semibold tracking-tight">
-                Nexus
-              </span>
+      {/* ===================== FOOTER ===================== */}
+      <footer className="border-t border-border/40 bg-background">
+        <div className="max-w-6xl mx-auto px-5 md:px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
+              <Zap className="w-4 h-4 fill-current" />
             </div>
-
-            <div className="flex items-center gap-6 text-xs text-slate-500">
-              <Link
-                href="#features"
-                className="hover:text-slate-300 transition"
-              >
-                Features
-              </Link>
-              <Link
-                href="#pricing"
-                className="hover:text-slate-300 transition"
-              >
-                Pricing
-              </Link>
-              <Link href="/login" className="hover:text-slate-300 transition">
-                Sign in
-              </Link>
-            </div>
-
-            <p className="text-xs text-slate-600">
-              © {new Date().getFullYear()} Nexus
-            </p>
+            <span className="text-lg font-bold tracking-tight text-foreground">Nexus</span>
           </div>
+          <div className="flex items-center gap-6 text-[12.5px] font-medium text-muted">
+            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">Sign in</Link>
+          </div>
+          <p className="text-[12px] text-muted">© {new Date().getFullYear()} Nexus. Built by Teslim.</p>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

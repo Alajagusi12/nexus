@@ -2,18 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePush } from "@/lib/use-push";
 import {
-  User,
-  Lock,
-  Loader2,
-  Check,
-  Upload,
-  Trash2,
-  Sparkles,
-  Bell,
-  BellOff,
+  User, Lock, Loader2, Check, Upload, Trash2, Sparkles,
+  Bell, BellOff, Mail, ShieldCheck, AlertCircle
 } from "lucide-react";
 import { SkillPicker } from "@/components/skill-picker";
 import { parseSkills } from "@/lib/skills";
@@ -26,20 +19,12 @@ export default function SettingsPage() {
   const [savedMessage, setSavedMessage] = useState("");
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
-    name: "",
-    bio: "",
-    image: "",
-  });
-
+  const [form, setForm] = useState({ name: "", bio: "", image: "" });
   const [skills, setSkills] = useState<string[]>([]);
   const [savingSkills, setSavingSkills] = useState(false);
   const [skillsMessage, setSkillsMessage] = useState("");
 
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-  });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -48,11 +33,7 @@ export default function SettingsPage() {
     fetch("/api/users/me", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        setForm({
-          name: data.name || "",
-          bio: data.bio || "",
-          image: data.image || "",
-        });
+        setForm({ name: data.name || "", bio: data.bio || "", image: data.image || "" });
         setSkills(parseSkills(data.skills));
         setLoading(false);
       })
@@ -76,7 +57,6 @@ export default function SettingsPage() {
     }
 
     setError("");
-
     try {
       const { uploadFile } = await import("@/lib/storage");
       const result = await uploadFile(file, "avatars", "user-avatars");
@@ -88,11 +68,8 @@ export default function SettingsPage() {
       }
 
       setForm({ ...form, image: result.url });
-
       const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: result.url }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: result.url }),
       });
 
       if (res.ok) {
@@ -104,7 +81,6 @@ export default function SettingsPage() {
       console.error(err);
       setError("Failed to upload avatar");
     }
-
     e.target.value = "";
   }
 
@@ -112,413 +88,221 @@ export default function SettingsPage() {
     setForm({ ...form, image: "" });
     try {
       await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: "" }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: "" }),
       });
       setSavedMessage("Avatar removed");
       setTimeout(() => setSavedMessage(""), 3000);
       update();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-    setSavedMessage("");
+    setSaving(true); setError(""); setSavedMessage("");
 
     try {
       const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
       });
-
-      if (!res.ok) {
-        setError("Failed to save");
-        setSaving(false);
-        return;
-      }
-
+      if (!res.ok) { setError("Failed to save"); setSaving(false); return; }
       setSavedMessage("Profile updated!");
       setTimeout(() => setSavedMessage(""), 3000);
       update();
-    } catch (err) {
-      setError("Something went wrong");
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { setError("Something went wrong"); } 
+    finally { setSaving(false); }
   }
 
   async function handleSaveSkills() {
-    setSavingSkills(true);
-    setSkillsMessage("");
+    setSavingSkills(true); setSkillsMessage("");
     try {
       const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skills }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ skills }),
       });
-      if (!res.ok) {
-        setSkillsMessage("Failed to save skills");
-        setTimeout(() => setSkillsMessage(""), 3000);
-        return;
-      }
+      if (!res.ok) { setSkillsMessage("Failed to save skills"); setTimeout(() => setSkillsMessage(""), 3000); return; }
       setSkillsMessage("Skills updated!");
       setTimeout(() => setSkillsMessage(""), 3000);
-    } catch (err) {
-      setSkillsMessage("Something went wrong");
-    } finally {
-      setSavingSkills(false);
-    }
+    } catch (err) { setSkillsMessage("Something went wrong"); } 
+    finally { setSavingSkills(false); }
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
-    setChangingPassword(true);
-    setPasswordError("");
-    setPasswordMessage("");
+    setChangingPassword(true); setPasswordError(""); setPasswordMessage("");
 
     try {
       const res = await fetch("/api/users/me/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(passwordForm),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(passwordForm),
       });
-
       const data = await res.json();
 
-      if (!res.ok) {
-        setPasswordError(data.error || "Failed");
-        setChangingPassword(false);
-        return;
-      }
-
+      if (!res.ok) { setPasswordError(data.error || "Failed"); setChangingPassword(false); return; }
       setPasswordMessage("Password changed!");
       setPasswordForm({ currentPassword: "", newPassword: "" });
       setTimeout(() => setPasswordMessage(""), 3000);
-    } catch (err) {
-      setPasswordError("Something went wrong");
-    } finally {
-      setChangingPassword(false);
-    }
+    } catch (err) { setPasswordError("Something went wrong"); } 
+    finally { setChangingPassword(false); }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+      <div className="max-w-3xl mx-auto p-4 md:p-8 animate-pulse">
+        <div className="h-8 w-48 bg-foreground/[0.05] rounded-lg mb-4" />
+        <div className="h-4 w-64 bg-foreground/[0.05] rounded-lg mb-10" />
+        <div className="h-32 bg-foreground/[0.02] border border-border rounded-2xl mb-6" />
+        <div className="h-64 bg-foreground/[0.02] border border-border rounded-2xl mb-6" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-8">
-      <div className="mb-8 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted text-sm md:text-base">
-          Manage your account and preferences
-        </p>
+    <div className="max-w-3xl mx-auto p-4 md:p-8 min-h-screen">
+      
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Account Settings</h1>
+        <p className="text-[14px] text-muted">Manage your personal profile, security, and preferences.</p>
       </div>
 
-      <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden ring-4 ring-border/30 flex-shrink-0">
-          {form.image ? (
-            <img
-              src={form.image}
-              alt="avatar"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            form.name?.[0]?.toUpperCase() || "?"
-          )}
+      {/* ===================== PROFILE HERO ===================== */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-3xl border border-border bg-gradient-to-br from-card to-background p-6 md:p-8 shadow-sm mb-8 overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+          <User className="w-40 h-40" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-semibold truncate">
-            {form.name || session?.user?.name}
-          </p>
-          <p className="text-sm text-muted truncate mb-3">
-            {session?.user?.email}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 text-xs font-medium transition cursor-pointer">
-              <Upload className="w-3 h-3" />
-              Upload photo
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
+        
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-3xl font-bold text-white overflow-hidden ring-4 ring-background shadow-xl">
+              {form.image ? <img src={form.image} alt="avatar" className="w-full h-full object-cover" /> : form.name?.[0]?.toUpperCase() || "?"}
+            </div>
+            <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
+              <Upload className="w-4 h-4" />
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </label>
+          </div>
+          
+          <div className="flex-1 text-center sm:text-left min-w-0">
+            <h2 className="text-2xl font-bold text-foreground mb-1 truncate">{form.name || session?.user?.name}</h2>
+            <p className="text-[13px] text-muted flex items-center justify-center sm:justify-start gap-1.5 mb-4">
+              <Mail className="w-3.5 h-3.5" /> {session?.user?.email}
+            </p>
             {form.image && (
-              <button
-                type="button"
-                onClick={removeAvatar}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 dark:text-red-400 text-xs font-medium transition"
-              >
-                <Trash2 className="w-3 h-3" />
-                Remove
+              <button onClick={removeAvatar} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[12px] font-semibold transition">
+                <Trash2 className="w-3.5 h-3.5" /> Remove photo
               </button>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2.5 text-sm mb-6">
-          {error}
-        </div>
-      )}
+      {/* ===================== MESSAGES ===================== */}
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 text-[13px] font-medium mb-6 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" /> {error}
+          </motion.div>
+        )}
+        {savedMessage && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-3 text-[13px] font-medium mb-6 flex items-center gap-2">
+            <Check className="w-4 h-4" /> {savedMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {savedMessage && (
-        <div className="rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 px-4 py-2.5 text-sm flex items-center gap-2 mb-6">
-          <Check className="w-4 h-4" />
-          {savedMessage}
-        </div>
-      )}
-
-      <motion.form
-        onSubmit={handleSave}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-foreground/[0.02] dark:bg-foreground/5 p-5 md:p-6 mb-6 space-y-5"
-      >
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <User className="w-5 h-5" />
-          Profile
+      {/* ===================== PROFILE FORM ===================== */}
+      <motion.form onSubmit={handleSave} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-border bg-card p-6 mb-8 shadow-sm space-y-5">
+        <h2 className="text-[16px] font-bold flex items-center gap-2 tracking-tight text-foreground mb-2">
+          <User className="w-4 h-4 text-emerald-500" /> Profile Information
         </h2>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-foreground/80">
-            Name
-          </label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            placeholder="Your name"
-          />
+          <label className="block text-[12px] font-bold uppercase tracking-wider mb-2 text-muted">Full Name</label>
+          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-xl border border-border bg-foreground/[0.02] px-4 py-2.5 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition" placeholder="Your name" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-foreground/80">
-            Bio
-          </label>
-          <textarea
-            value={form.bio}
-            onChange={(e) => setForm({ ...form, bio: e.target.value })}
-            rows={3}
-            className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
-            placeholder="Tell us about yourself"
-          />
+          <label className="block text-[12px] font-bold uppercase tracking-wider mb-2 text-muted">Bio</label>
+          <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className="w-full rounded-xl border border-border bg-foreground/[0.02] px-4 py-2.5 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none" placeholder="Tell us about yourself..." />
         </div>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save changes"
-          )}
+        <button type="submit" disabled={saving} className="rounded-xl bg-emerald-500 px-5 py-2.5 text-white text-[13px] font-semibold hover:bg-emerald-600 transition disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save Profile"}
         </button>
       </motion.form>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.03 }}
-        className="rounded-2xl border border-border bg-foreground/[0.02] dark:bg-foreground/5 p-5 md:p-6 mb-6"
-      >
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
-          <Bell className="w-5 h-5" />
-          Notifications
+      {/* ===================== NOTIFICATIONS ===================== */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="rounded-2xl border border-border bg-card p-6 mb-8 shadow-sm">
+        <h2 className="text-[16px] font-bold flex items-center gap-2 tracking-tight text-foreground mb-2">
+          <Bell className="w-4 h-4 text-emerald-500" /> Push Notifications
         </h2>
-        <p className="text-sm text-muted mb-4">
-          Get desktop alerts when someone sends you a message, even when this
-          tab is in the background.
-        </p>
+        <p className="text-[13px] text-muted mb-5">Get desktop alerts when someone sends you a message, even when this tab is in the background.</p>
 
         {!push.supported ? (
-          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-2.5 text-sm">
-            Your browser doesn&apos;t support push notifications.
-          </div>
+          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-3 text-[13px] font-medium">Your browser doesn&apos;t support push notifications.</div>
         ) : push.permission === "denied" ? (
-          <div className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2.5 text-sm">
-            Notifications blocked. Enable them in your browser settings (click
-            the lock icon in the URL bar).
-          </div>
+          <div className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 text-[13px] font-medium">Notifications blocked. Enable them in your browser settings.</div>
         ) : (
-          <button
-            type="button"
-            onClick={push.subscribed ? push.unsubscribe : push.subscribe}
-            disabled={push.loading}
-            className={`rounded-xl px-5 py-2.5 font-semibold transition flex items-center gap-2 disabled:opacity-50 ${
-              push.subscribed
-                ? "bg-foreground/5 hover:bg-foreground/10 border border-border"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white"
-            }`}
-          >
-            {push.loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Working...
-              </>
-            ) : push.subscribed ? (
-              <>
-                <BellOff className="w-4 h-4" />
-                Disable notifications
-              </>
-            ) : (
-              <>
-                <Bell className="w-4 h-4" />
-                Enable notifications
-              </>
-            )}
+          <button type="button" onClick={push.subscribed ? push.unsubscribe : push.subscribe} disabled={push.loading} className={`rounded-xl px-5 py-2.5 text-[13px] font-semibold transition flex items-center gap-2 disabled:opacity-50 shadow-sm ${push.subscribed ? "bg-foreground/[0.04] hover:bg-foreground/[0.08] text-foreground border border-border" : "bg-emerald-500 hover:bg-emerald-600 text-white"}`}>
+            {push.loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Working...</> : push.subscribed ? <><BellOff className="w-4 h-4" /> Disable Notifications</> : <><Bell className="w-4 h-4" /> Enable Notifications</>}
           </button>
         )}
 
         {push.subscribed && (
-          <p className="text-xs text-green-500 mt-3 flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5" />
-            Notifications enabled on this device
+          <p className="text-[12px] font-medium text-emerald-500 mt-4 flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5" /> Notifications enabled on this device
           </p>
         )}
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="rounded-2xl border border-border bg-foreground/[0.02] dark:bg-foreground/5 p-5 md:p-6 mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
-            Skills
+      {/* ===================== SKILLS ===================== */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl border border-border bg-card p-6 mb-8 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[16px] font-bold flex items-center gap-2 tracking-tight text-foreground">
+            <Sparkles className="w-4 h-4 text-emerald-500" /> Skills
           </h2>
           {skillsMessage && (
-            <span
-              className={`text-xs font-medium ${
-                skillsMessage.includes("updated")
-                  ? "text-green-500"
-                  : "text-red-500"
-              }`}
-            >
-              {skillsMessage}
-            </span>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${skillsMessage.includes("updated") ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}>{skillsMessage}</span>
           )}
         </div>
-
-        <p className="text-sm text-muted mb-4">
-          Pick the skills you bring to the team. They show up on your profile
-          and the Team page.
-        </p>
+        <p className="text-[13px] text-muted mb-5">Pick the skills you bring to the team. They show up on your profile and the Team page.</p>
 
         <SkillPicker selected={skills} onChange={setSkills} />
 
-        <button
-          type="button"
-          onClick={handleSaveSkills}
-          disabled={savingSkills}
-          className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2"
-        >
-          {savingSkills ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save skills"
-          )}
+        <button type="button" onClick={handleSaveSkills} disabled={savingSkills} className="mt-5 rounded-xl bg-emerald-500 px-5 py-2.5 text-white text-[13px] font-semibold hover:bg-emerald-600 transition disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          {savingSkills ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save Skills"}
         </button>
       </motion.div>
 
-      <motion.form
-        onSubmit={handlePasswordChange}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl border border-border bg-foreground/[0.02] dark:bg-foreground/5 p-5 md:p-6 space-y-5"
-      >
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Lock className="w-5 h-5" />
-          Change Password
+      {/* ===================== PASSWORD ===================== */}
+      <motion.form onSubmit={handlePasswordChange} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
+        <h2 className="text-[16px] font-bold flex items-center gap-2 tracking-tight text-foreground mb-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Security
         </h2>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-foreground/80">
-            Current password
-          </label>
-          <input
-            type="password"
-            value={passwordForm.currentPassword}
-            onChange={(e) =>
-              setPasswordForm({
-                ...passwordForm,
-                currentPassword: e.target.value,
-              })
-            }
-            required
-            className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          />
+          <label className="block text-[12px] font-bold uppercase tracking-wider mb-2 text-muted">Current Password</label>
+          <input type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required className="w-full rounded-xl border border-border bg-foreground/[0.02] px-4 py-2.5 text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-foreground/80">
-            New password
-          </label>
-          <input
-            type="password"
-            value={passwordForm.newPassword}
-            onChange={(e) =>
-              setPasswordForm({
-                ...passwordForm,
-                newPassword: e.target.value,
-              })
-            }
-            required
-            minLength={6}
-            className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          />
+          <label className="block text-[12px] font-bold uppercase tracking-wider mb-2 text-muted">New Password</label>
+          <input type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required minLength={6} className="w-full rounded-xl border border-border bg-foreground/[0.02] px-4 py-2.5 text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition" />
         </div>
 
-        {passwordError && (
-          <div className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2.5 text-sm">
-            {passwordError}
-          </div>
-        )}
-
-        {passwordMessage && (
-          <div className="rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 px-4 py-2.5 text-sm flex items-center gap-2">
-            <Check className="w-4 h-4" />
-            {passwordMessage}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={changingPassword}
-          className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-white font-semibold hover:from-blue-500 hover:to-indigo-500 transition disabled:opacity-50 flex items-center gap-2"
-        >
-          {changingPassword ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Changing...
-            </>
-          ) : (
-            "Change password"
+        <AnimatePresence>
+          {passwordError && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2.5 text-[13px] font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" /> {passwordError}
+            </motion.div>
           )}
+          {passwordMessage && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-2.5 text-[13px] font-medium flex items-center gap-2">
+              <Check className="w-4 h-4" /> {passwordMessage}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button type="submit" disabled={changingPassword} className="rounded-xl bg-foreground text-background px-5 py-2.5 text-[13px] font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" /> Changing...</> : "Change Password"}
         </button>
       </motion.form>
     </div>

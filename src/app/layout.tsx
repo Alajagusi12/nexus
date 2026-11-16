@@ -5,18 +5,35 @@ import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
-// 1. Added display: "swap" to prevent invisible text while loading
 const inter = Inter({ 
   subsets: ["latin"],
   display: "swap", 
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "Nexus — All-in-one workspace",
-  description: "Chat, collaborate, and get work done together.",
-  // 2. Inline SVG Favicon (A simple purple "N" block to match your UI)
+  title: {
+    default: "Nexus — All-in-one workspace",
+    template: "%s | Nexus",
+  },
+  description: "Chat, collaborate, and get work done together in a premium, real-time workspace.",
+  applicationName: "Nexus",
+  authors: [{ name: "Teslim" }],
+  keywords: ["workspace", "collaboration", "chat", "tasks", "docs", "AI"],
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50%' y='50%' font-size='60' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>N</text></svg>",
+    // Upgraded Favicon: Emerald background with a stylized 'N'
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2310b981'/><text x='50%' y='50%' font-size='58' font-family='system-ui, -apple-system, sans-serif' font-weight='800' fill='white' text-anchor='middle' dominant-baseline='central'>N</text></svg>",
+  },
+  openGraph: {
+    type: "website",
+    title: "Nexus — All-in-one workspace",
+    description: "Chat, collaborate, and get work done together.",
+    siteName: "Nexus",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nexus — All-in-one workspace",
+    description: "Chat, collaborate, and get work done together.",
   },
 };
 
@@ -25,10 +42,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1, 
   userScalable: false, 
-  // 3. Matches the mobile browser address bar to your dark/light theme
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" }, // Matches your dark UI background
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
 };
 
@@ -38,9 +54,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      {/* 4. Added suppressHydrationWarning to body as well */}
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body 
+        className={`${inter.className} bg-background text-foreground antialiased selection:bg-emerald-500/30`} 
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           <Providers>
             {children}
@@ -48,6 +66,10 @@ export default function RootLayout({
               position="top-right"
               richColors
               theme="system"
+              closeButton
+              toastOptions={{
+                className: "font-sans border-border bg-card text-foreground shadow-xl rounded-xl",
+              }}
             />
           </Providers>
         </ThemeProvider>

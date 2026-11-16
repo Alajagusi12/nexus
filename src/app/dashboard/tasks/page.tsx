@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { 
-  Plus, X, Trash2, Loader2, Calendar, Search, 
-  User, AlignLeft, CheckCircle2, Circle, Clock, AlertCircle,
-  MessageSquare, Send, CheckSquare, Square, Tag, Users, Filter
+  Plus, X, Trash2, Loader2, Calendar, Search, User, AlignLeft, 
+  CheckCircle2, Circle, Clock, AlertCircle, MessageSquare, Send, 
+  CheckSquare, Square, Tag, Filter, ChevronRight, ChevronDown
 } from "lucide-react";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
@@ -25,7 +25,7 @@ type Task = {
   creatorId: string;
   assigneeId: string | null;
   creator: { id: string; name: string | null; email: string };
-  assignee: { id: string; name: string | null; email: string } | null;
+  assignee: { id: string; name: string | null; email: string; image?: string | null } | null;
   subtasks?: { id: string; title: string; completed: boolean }[];
   comments?: { id: string; content: string; createdAt: string; user: { name: string | null, image: string | null } }[];
   labels?: string[];
@@ -33,18 +33,25 @@ type Task = {
 
 type TeamMember = { id: string; name: string | null; email: string; image: string | null };
 
-const COLUMNS: { id: TaskStatus; label: string; color: string; icon: any }[] = [
-  { id: "TODO", label: "To Do", color: "text-slate-500", icon: Circle },
-  { id: "IN_PROGRESS", label: "In Progress", color: "text-emerald-500", icon: Clock },
-  { id: "REVIEW", label: "Review", color: "text-yellow-500", icon: AlertCircle },
-  { id: "DONE", label: "Done", color: "text-blue-500", icon: CheckCircle2 },
+const COLUMNS: { id: TaskStatus; label: string; color: string; icon: any; border: string }[] = [
+  { id: "TODO", label: "To Do", color: "text-slate-500", icon: Circle, border: "border-l-slate-500" },
+  { id: "IN_PROGRESS", label: "In Progress", color: "text-emerald-500", icon: Clock, border: "border-l-emerald-500" },
+  { id: "REVIEW", label: "In Review", color: "text-yellow-500", icon: AlertCircle, border: "border-l-yellow-500" },
+  { id: "DONE", label: "Done", color: "text-blue-500", icon: CheckCircle2, border: "border-l-blue-500" },
 ];
 
 const PRIORITY_COLORS: Record<Priority, string> = {
-  LOW: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-  MEDIUM: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  HIGH: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-  URGENT: "bg-red-500/10 text-red-500 border-red-500/20",
+  LOW: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  MEDIUM: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  HIGH: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  URGENT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+};
+
+const PRIORITY_BORDERS: Record<Priority, string> = {
+  LOW: "border-l-slate-500",
+  MEDIUM: "border-l-blue-500",
+  HIGH: "border-l-orange-500",
+  URGENT: "border-l-red-500",
 };
 
 export default function TasksPage() {
@@ -67,12 +74,7 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<Priority | "ALL">("ALL");
 
   // New Task Form
-  const [newTask, setNewTask] = useState({
-    title: "",
-    description: "",
-    priority: "MEDIUM" as Priority,
-    dueDate: "",
-  });
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "MEDIUM" as Priority, dueDate: "" });
   const [creating, setCreating] = useState(false);
 
   // Task Details Forms
@@ -81,8 +83,6 @@ export default function TasksPage() {
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [isAddingLabel, setIsAddingLabel] = useState(false);
-
-  const commentInputRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
     try {
@@ -114,13 +114,9 @@ export default function TasksPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Keyboard Shortcuts (N for New Task, Esc to close)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setShowNewTask(false);
-        setSelectedTask(null);
-      }
+      if (e.key === "Escape") { setShowNewTask(false); setSelectedTask(null); }
       if (e.key.toLowerCase() === "n" && !showNewTask && !selectedTask) {
         const target = e.target as HTMLElement;
         if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
@@ -151,11 +147,8 @@ export default function TasksPage() {
         loadData();
         toast.success("Task created");
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreating(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setCreating(false); }
   }
 
   async function updateTask(taskId: string, updates: Partial<Task>) {
@@ -164,14 +157,9 @@ export default function TasksPage() {
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
       });
-    } catch (err) {
-      console.error(err);
-      loadData();
-    }
+    } catch (err) { console.error(err); loadData(); }
   }
 
   async function deleteTask(taskId: string) {
@@ -181,52 +169,35 @@ export default function TasksPage() {
     try {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
       toast.success("Task deleted");
-    } catch (err) {
-      console.error(err);
-      loadData();
-    }
+    } catch (err) { console.error(err); loadData(); }
   }
 
-  function handleDragStart(taskId: string) {
-    setDraggedTask(taskId);
-  }
-
-  function handleDragOver(e: React.DragEvent, status: TaskStatus) {
-    e.preventDefault();
-    setDragOverColumn(status);
-  }
-
+  function handleDragStart(taskId: string) { setDraggedTask(taskId); }
+  function handleDragOver(e: React.DragEvent, status: TaskStatus) { e.preventDefault(); setDragOverColumn(status); }
   function handleDrop(e: React.DragEvent, status: TaskStatus) {
     e.preventDefault();
-    if (draggedTask) {
-      updateTask(draggedTask, { status });
-    }
+    if (draggedTask) updateTask(draggedTask, { status });
     setDraggedTask(null);
     setDragOverColumn(null);
   }
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
-      const matchesSearch = !searchQuery.trim() || 
-        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !searchQuery.trim() || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPriority = priorityFilter === "ALL" || t.priority === priorityFilter;
       return matchesSearch && matchesPriority;
     });
   }, [tasks, searchQuery, priorityFilter]);
 
-  function tasksByStatus(status: TaskStatus) {
-    return filteredTasks.filter((t) => t.status === status);
-  }
+  function tasksByStatus(status: TaskStatus) { return filteredTasks.filter((t) => t.status === status); }
 
   function getDueDateColor(dateString: string | null) {
     if (!dateString) return "text-muted";
     const date = new Date(dateString);
     const today = new Date();
     today.setHours(0,0,0,0);
-    
-    if (date.getTime() < today.getTime()) return "text-red-500 font-semibold"; 
-    if (date.getTime() === today.getTime()) return "text-orange-500 font-semibold"; 
+    if (date.getTime() < today.getTime()) return "text-red-500 font-bold bg-red-500/10 px-1.5 py-0.5 rounded"; 
+    if (date.getTime() === today.getTime()) return "text-orange-500 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded"; 
     return "text-muted"; 
   }
 
@@ -235,26 +206,29 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 flex-shrink-0 gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-sm text-muted">
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} total
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            Tasks
+            <span className="text-[12px] font-semibold bg-foreground/[0.06] text-muted px-2 py-0.5 rounded-md mt-1">
+              {tasks.length} Total
+            </span>
+          </h1>
+          <p className="text-[13px] text-muted mt-0.5">Manage your team's workflow and track progress.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-56">
+          <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
-              type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-border bg-foreground/[0.02] pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
+              type="text" placeholder="Search tasks... (Press 'N')" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 rounded-xl border border-border bg-card pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition shadow-sm"
             />
           </div>
           
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
             <select
               value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as any)}
-              className="rounded-xl border border-border bg-foreground/[0.02] pl-9 pr-8 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition appearance-none cursor-pointer"
+              className="h-10 rounded-xl border border-border bg-card pl-9 pr-8 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition appearance-none cursor-pointer shadow-sm"
             >
               <option value="ALL">All Priorities</option>
               <option value="URGENT">Urgent</option>
@@ -266,10 +240,9 @@ export default function TasksPage() {
 
           <button
             onClick={() => { setNewTaskStatus("TODO"); setShowNewTask(true); }}
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-white font-semibold hover:bg-emerald-600 transition flex items-center gap-2 flex-shrink-0 shadow-sm"
+            className="h-10 rounded-xl bg-emerald-500 px-5 text-white text-[13px] font-semibold hover:bg-emerald-600 transition flex items-center gap-2 flex-shrink-0 shadow-lg shadow-emerald-500/20"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Task</span>
+            <Plus className="w-4 h-4" /> New Task
           </button>
         </div>
       </div>
@@ -280,38 +253,39 @@ export default function TasksPage() {
           <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex overflow-x-auto pb-4 gap-4 snap-x">
+        <div className="flex-1 min-h-0 flex overflow-x-auto pb-4 gap-5 snap-x custom-scrollbar">
           {COLUMNS.map((col) => {
             const colTasks = tasksByStatus(col.id);
             const isOver = dragOverColumn === col.id;
             const Icon = col.icon;
+            
             return (
               <div
                 key={col.id}
                 onDragOver={(e) => handleDragOver(e, col.id)}
                 onDragLeave={() => setDragOverColumn(null)}
                 onDrop={(e) => handleDrop(e, col.id)}
-                className={`min-w-[280px] w-full md:w-1/2 lg:w-1/4 snap-center rounded-2xl border flex flex-col transition-all ${
+                className={`min-w-[290px] w-full md:w-1/2 lg:w-1/4 snap-center rounded-2xl border flex flex-col transition-all ${
                   isOver ? "border-emerald-500/50 bg-emerald-500/5 shadow-inner" : "border-border bg-foreground/[0.01]"
                 }`}
               >
-                <div className="p-3 border-b border-border flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-sm z-10 rounded-t-2xl">
+                <div className="p-3.5 border-b border-border flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-10 rounded-t-2xl">
                   <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${col.color}`} />
-                    <h3 className="text-[13px] font-semibold tracking-tight">{col.label}</h3>
-                    <span className="text-[11px] font-medium bg-foreground/[0.06] px-2 py-0.5 rounded-full text-muted">
+                    <h3 className="text-[13.5px] font-bold tracking-tight text-foreground">{col.label}</h3>
+                    <span className="text-[11px] font-bold bg-foreground/[0.06] px-2 py-0.5 rounded-md text-muted">
                       {colTasks.length}
                     </span>
                   </div>
                   <button 
                     onClick={() => { setNewTaskStatus(col.id); setShowNewTask(true); }}
-                    className="p-1 rounded-md hover:bg-foreground/[0.06] text-muted transition"
+                    className="p-1.5 rounded-lg hover:bg-foreground/[0.06] text-muted hover:text-foreground transition"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar">
                   <AnimatePresence>
                     {colTasks.map((task) => {
                       const totalSubtasks = task.subtasks?.length || 0;
@@ -328,12 +302,12 @@ export default function TasksPage() {
                           draggable
                           onDragStart={() => handleDragStart(task.id)}
                           onClick={() => setSelectedTask(task)}
-                          className={`group rounded-xl border border-border bg-card p-3 cursor-pointer hover:border-emerald-500/30 shadow-sm hover:shadow-md transition ${
-                            draggedTask === task.id ? "opacity-40" : ""
+                          className={`group rounded-xl border border-border bg-card border-l-4 ${PRIORITY_BORDERS[task.priority]} p-3.5 cursor-pointer hover:border-emerald-500/30 hover:shadow-md transition-all ${
+                            draggedTask === task.id ? "opacity-40 rotate-2 scale-95" : ""
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-[13.5px] font-medium leading-snug flex-1">
+                            <p className="text-[13.5px] font-semibold text-foreground leading-snug flex-1">
                               {task.title}
                             </p>
                             <button
@@ -351,9 +325,9 @@ export default function TasksPage() {
                           )}
 
                           {task.labels && task.labels.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
                               {task.labels.map(l => (
-                                <span key={l} className="text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <span key={l} className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                   {l}
                                 </span>
                               ))}
@@ -361,20 +335,20 @@ export default function TasksPage() {
                           )}
 
                           {totalSubtasks > 0 && (
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between text-[10px] text-muted mb-1">
-                                <span className="flex items-center gap-1"><CheckSquare className="w-3 h-3" /> {completedSubtasks}/{totalSubtasks}</span>
+                            <div className="mt-3.5">
+                              <div className="flex items-center justify-between text-[10px] font-medium text-muted mb-1.5">
+                                <span className="flex items-center gap-1.5"><CheckSquare className="w-3.5 h-3.5" /> {completedSubtasks}/{totalSubtasks}</span>
                                 <span>{Math.round(progress)}%</span>
                               </div>
                               <div className="w-full h-1.5 bg-foreground/[0.06] rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+                                <div className="h-full bg-emerald-500 transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
                               </div>
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold tracking-wide ${PRIORITY_COLORS[task.priority]}`}>
+                              <span className={`text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-md border ${PRIORITY_COLORS[task.priority]}`}>
                                 {task.priority}
                               </span>
                               {task.dueDate && (
@@ -385,12 +359,16 @@ export default function TasksPage() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-1.5" title={task.assignee?.name || "Unassigned"}>
+                            <div className="flex items-center gap-2" title={task.assignee?.name || "Unassigned"}>
                               {task.comments && task.comments.length > 0 && (
-                                <span className="text-[10px] text-muted flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {task.comments.length}</span>
+                                <span className="text-[10.5px] font-medium text-muted flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" /> {task.comments.length}</span>
                               )}
-                              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/30 flex-shrink-0">
-                                {task.assignee?.name?.[0]?.toUpperCase() || task.creator?.name?.[0]?.toUpperCase() || "?"}
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/30 flex-shrink-0 overflow-hidden shadow-sm">
+                                {task.assignee?.image ? (
+                                  <img src={task.assignee.image} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  task.assignee?.name?.[0]?.toUpperCase() || task.creator?.name?.[0]?.toUpperCase() || "?"
+                                )}
                               </div>
                             </div>
                           </div>
@@ -398,6 +376,15 @@ export default function TasksPage() {
                       );
                     })}
                   </AnimatePresence>
+                  
+                  {colTasks.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center border-2 border-dashed border-border/60 rounded-xl bg-background/50 m-1">
+                      <p className="text-[12px] font-medium text-muted mb-2">No tasks here</p>
+                      <button onClick={() => { setNewTaskStatus(col.id); setShowNewTask(true); }} className="text-[11px] font-semibold text-emerald-500 hover:underline">
+                        + Add one
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -413,8 +400,11 @@ export default function TasksPage() {
             className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold text-[15px]">New Task in {COLUMNS.find(c=>c.id===newTaskStatus)?.label}</h3>
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <h3 className="font-bold text-[15px] text-foreground flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${COLUMNS.find(c=>c.id===newTaskStatus)?.color.replace("text-", "bg-")}`} />
+                New Task in {COLUMNS.find(c=>c.id===newTaskStatus)?.label}
+              </h3>
               <button onClick={() => setShowNewTask(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition">
                 <X className="w-4 h-4" />
               </button>
@@ -422,31 +412,31 @@ export default function TasksPage() {
 
             <form onSubmit={createTask} className="p-5 space-y-4">
               <div>
-                <label className="block text-[13px] font-medium mb-1.5 text-foreground/80">Title</label>
+                <label className="block text-[12px] font-bold mb-1.5 text-foreground/80 uppercase tracking-wider">Title</label>
                 <input
                   type="text" value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                   required autoFocus
-                  className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
+                  className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-2.5 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                   placeholder="What needs to be done?"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium mb-1.5 text-foreground/80">Description</label>
+                <label className="block text-[12px] font-bold mb-1.5 text-foreground/80 uppercase tracking-wider">Description</label>
                 <textarea
                   value={newTask.description} onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                   rows={3}
-                  className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none"
+                  className="w-full rounded-xl border border-border bg-foreground/[0.04] px-4 py-2.5 text-[14px] text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition resize-none"
                   placeholder="Optional details"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[13px] font-medium mb-1.5 text-foreground/80">Priority</label>
+                  <label className="block text-[12px] font-bold mb-1.5 text-foreground/80 uppercase tracking-wider">Priority</label>
                   <select
                     value={newTask.priority} onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as Priority })}
-                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
+                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-3 py-2.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -456,10 +446,10 @@ export default function TasksPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-medium mb-1.5 text-foreground/80">Due date</label>
+                  <label className="block text-[12px] font-bold mb-1.5 text-foreground/80 uppercase tracking-wider">Due date</label>
                   <input
                     type="date" value={newTask.dueDate} onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
+                    className="w-full rounded-xl border border-border bg-foreground/[0.04] px-3 py-2.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
                   />
                 </div>
               </div>
@@ -468,7 +458,7 @@ export default function TasksPage() {
                 <button type="button" onClick={() => setShowNewTask(false)} className="flex-1 rounded-xl border border-border py-2.5 text-[13px] font-medium hover:bg-foreground/[0.04] transition">
                   Cancel
                 </button>
-                <button type="submit" disabled={creating || !newTask.title.trim()} className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-white text-[13px] font-semibold hover:bg-emerald-600 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                <button type="submit" disabled={creating || !newTask.title.trim()} className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-white text-[13px] font-semibold hover:bg-emerald-600 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm">
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Task"}
                 </button>
               </div>
@@ -486,17 +476,17 @@ export default function TasksPage() {
               className="w-full max-w-4xl h-full md:h-[85vh] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col md:flex-row"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex-1 flex flex-col min-w-0 border-r border-border overflow-y-auto">
+              <div className="flex-1 flex flex-col min-w-0 border-r border-border overflow-y-auto custom-scrollbar">
                 <div className="p-5 border-b border-border flex flex-col gap-3 sticky top-0 bg-card z-10">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold tracking-wide ${PRIORITY_COLORS[selectedTask.priority]}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md border font-bold tracking-wide ${PRIORITY_COLORS[selectedTask.priority]}`}>
                         {selectedTask.priority}
                       </span>
                       <select
                         value={selectedTask.status}
                         onChange={(e) => updateTask(selectedTask.id, { status: e.target.value as TaskStatus })}
-                        className="text-[11px] font-medium text-muted bg-foreground/[0.06] px-2 py-0.5 rounded-md border-none focus:outline-none cursor-pointer hover:bg-foreground/[0.1] transition"
+                        className="text-[11px] font-bold text-foreground bg-foreground/[0.06] px-2 py-0.5 rounded-md border-none focus:outline-none cursor-pointer hover:bg-foreground/[0.1] transition"
                       >
                         {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                       </select>
@@ -506,20 +496,19 @@ export default function TasksPage() {
                     </button>
                   </div>
                   
-                  {/* Inline Title Edit */}
                   <input 
                     type="text"
                     value={selectedTask.title}
                     onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
                     onBlur={() => updateTask(selectedTask.id, { title: selectedTask.title })}
-                    className="text-xl font-bold leading-tight bg-transparent border border-transparent hover:border-border focus:border-emerald-500 focus:bg-foreground/[0.02] rounded-lg px-2 -ml-2 py-1 outline-none transition-all w-full"
+                    className="text-xl font-bold leading-tight bg-transparent border border-transparent hover:border-border focus:border-emerald-500 focus:bg-foreground/[0.02] rounded-lg px-2 -ml-2 py-1 outline-none transition-all w-full text-foreground"
                   />
                 </div>
 
                 <div className="p-5 space-y-8">
                   {/* Description */}
                   <div>
-                    <h4 className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <h4 className="text-[12px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
                       <AlignLeft className="w-3.5 h-3.5" /> Description
                     </h4>
                     <textarea
@@ -533,12 +522,12 @@ export default function TasksPage() {
 
                   {/* Labels */}
                   <div>
-                    <h4 className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <h4 className="text-[12px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
                       <Tag className="w-3.5 h-3.5" /> Labels
                     </h4>
                     <div className="flex flex-wrap gap-2 items-center">
                       {selectedTask.labels?.map(label => (
-                        <span key={label} className="group flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span key={label} className="group flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                           {label}
                           <button onClick={() => {
                             const updated = selectedTask.labels!.filter(l => l !== label);
@@ -562,10 +551,10 @@ export default function TasksPage() {
                           }}
                           onBlur={() => { if(!newLabel.trim()) setIsAddingLabel(false); }}
                           placeholder="Label name..."
-                          className="text-[11px] bg-transparent border border-emerald-500/50 rounded-md px-2 py-1 focus:outline-none w-24"
+                          className="text-[11px] bg-transparent border border-emerald-500/50 rounded-md px-2 py-1 focus:outline-none w-24 text-foreground"
                         />
                       ) : (
-                        <button onClick={() => setIsAddingLabel(true)} className="text-[11px] font-semibold px-2 py-1 rounded-md border border-dashed border-border hover:border-emerald-500/50 text-muted transition flex items-center gap-1">
+                        <button onClick={() => setIsAddingLabel(true)} className="text-[11px] font-bold px-2 py-1 rounded-md border border-dashed border-border hover:border-emerald-500/50 text-muted transition flex items-center gap-1">
                           <Plus className="w-3 h-3" /> Add
                         </button>
                       )}
@@ -574,9 +563,9 @@ export default function TasksPage() {
 
                   {/* Subtasks */}
                   <div>
-                    <h4 className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <h4 className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3 flex items-center justify-between">
                       <span className="flex items-center gap-2"><CheckSquare className="w-3.5 h-3.5" /> Subtasks</span>
-                      <span className="text-[10px] font-normal lowercase">({selectedTask.subtasks?.filter(s=>s.completed).length || 0}/{selectedTask.subtasks?.length || 0})</span>
+                      <span className="text-[10px] font-medium lowercase">({selectedTask.subtasks?.filter(s=>s.completed).length || 0}/{selectedTask.subtasks?.length || 0})</span>
                     </h4>
                     <div className="space-y-1.5">
                       {selectedTask.subtasks?.map(sub => (
@@ -587,7 +576,7 @@ export default function TasksPage() {
                           }} className="mt-0.5 text-muted hover:text-emerald-500 transition">
                             {sub.completed ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
                           </button>
-                          <span className={`text-[13.5px] flex-1 leading-snug ${sub.completed ? "line-through text-muted" : ""}`}>
+                          <span className={`text-[13.5px] flex-1 leading-snug text-foreground/90 ${sub.completed ? "line-through text-muted" : ""}`}>
                             {sub.title}
                           </span>
                           <button onClick={() => {
@@ -613,12 +602,12 @@ export default function TasksPage() {
                               if (e.key === "Escape") setAddingSubtask(false);
                             }}
                             placeholder="Subtask title... (Press Enter)"
-                            className="flex-1 bg-transparent border-b border-emerald-500 text-[13.5px] py-1 focus:outline-none"
+                            className="flex-1 bg-transparent border-b border-emerald-500 text-[13.5px] py-1 focus:outline-none text-foreground"
                           />
                           <button onClick={() => setAddingSubtask(false)} className="text-muted"><X className="w-4 h-4"/></button>
                         </div>
                       ) : (
-                        <button onClick={() => setAddingSubtask(true)} className="text-[13px] text-muted hover:text-emerald-500 font-medium hover:underline flex items-center gap-2 mt-2 p-1.5">
+                        <button onClick={() => setAddingSubtask(true)} className="text-[13px] text-muted hover:text-emerald-500 font-bold hover:underline flex items-center gap-2 mt-2 p-1.5">
                           <Plus className="w-4 h-4" /> Add subtask
                         </button>
                       )}
@@ -628,7 +617,7 @@ export default function TasksPage() {
                   {/* Meta Data */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                     <div>
-                      <h4 className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <h4 className="text-[12px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5" /> Due Date
                       </h4>
                       <input 
@@ -639,17 +628,17 @@ export default function TasksPage() {
                       />
                     </div>
                     <div>
-                      <h4 className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <h4 className="text-[12px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
                         <User className="w-3.5 h-3.5" /> Assignee
                       </h4>
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/30">
-                          {selectedTask.assignee?.name?.[0]?.toUpperCase() || "?"}
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/30 overflow-hidden">
+                          {selectedTask.assignee?.image ? <img src={selectedTask.assignee.image} alt="" className="w-full h-full object-cover" /> : selectedTask.assignee?.name?.[0]?.toUpperCase() || "?"}
                         </div>
                         <select
                           value={selectedTask.assigneeId || ""}
                           onChange={(e) => updateTask(selectedTask.id, { assigneeId: e.target.value || null })}
-                          className="text-[13px] font-medium bg-transparent border border-transparent hover:border-border rounded px-1 -ml-1 py-0.5 focus:border-emerald-500 focus:outline-none transition-colors w-full max-w-[150px] truncate"
+                          className="text-[13px] font-medium bg-transparent border border-transparent hover:border-border rounded px-1 -ml-1 py-0.5 focus:border-emerald-500 focus:outline-none transition-colors w-full max-w-[150px] truncate text-foreground"
                         >
                           <option value="">Unassigned</option>
                           {team.map(m => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
@@ -666,7 +655,7 @@ export default function TasksPage() {
               {/* Comments Sidebar */}
               <div className="w-full md:w-80 flex flex-col bg-foreground/[0.01] border-t md:border-t-0 md:border-l border-border">
                 <div className="p-4 border-b border-border flex items-center justify-between">
-                  <h4 className="text-[13px] font-semibold flex items-center gap-2">
+                  <h4 className="text-[13px] font-bold flex items-center gap-2 text-foreground">
                     <MessageSquare className="w-4 h-4 text-emerald-500" /> Comments
                   </h4>
                   <button onClick={() => setSelectedTask(null)} className="p-1 rounded-lg hover:bg-foreground/[0.06] transition flex-shrink-0 hidden md:block">
@@ -674,18 +663,18 @@ export default function TasksPage() {
                   </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                   {selectedTask.comments?.map(comment => (
                     <div key={comment.id} className="flex gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5">
-                        {comment.user.name?.[0]?.toUpperCase() || "?"}
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5 overflow-hidden">
+                        {comment.user.image ? <img src={comment.user.image} alt="" className="w-full h-full object-cover" /> : comment.user.name?.[0]?.toUpperCase() || "?"}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-[12px] font-semibold">{comment.user.name}</span>
+                          <span className="text-[12px] font-bold text-foreground">{comment.user.name}</span>
                           <span className="text-[10px] text-muted">{new Date(comment.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-[12.5px] text-foreground/80 leading-relaxed bg-foreground/[0.03] rounded-lg rounded-tl-sm p-2.5">
+                        <p className="text-[12.5px] text-foreground/80 leading-relaxed bg-card border border-border/50 rounded-lg rounded-tl-sm p-2.5 shadow-sm">
                           {comment.content}
                         </p>
                       </div>
@@ -706,10 +695,9 @@ export default function TasksPage() {
                     setNewComment("");
                   }} className="relative">
                     <input
-                      ref={commentInputRef}
                       type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Write a comment..."
-                      className="w-full rounded-xl border border-border bg-foreground/[0.04] pl-3 pr-10 py-2.5 text-[13px] focus:outline-none focus:ring-1 focus:ring-emerald-500/40 transition"
+                      className="w-full rounded-xl border border-border bg-foreground/[0.04] pl-3 pr-10 py-2.5 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-emerald-500/40 transition"
                     />
                     <button type="submit" disabled={!newComment.trim()} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-lg disabled:opacity-50 transition">
                       <Send className="w-4 h-4" />
